@@ -1,0 +1,20 @@
+# Local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+**/node_modules/
+**/dist/
+**/target/
+**/coverage/
+**/test-results/
+**/playwright-report/
+.tools/
+*.log
+*.tsbuildinfo
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
