@@ -31,6 +31,7 @@ class FoundationIT {
         registry.add("spring.datasource.url", DATABASE::getJdbcUrl);
         registry.add("spring.datasource.username", DATABASE::getUsername);
         registry.add("spring.datasource.password", DATABASE::getPassword);
+        registry.add("security.auth.jwt-secret", () -> java.util.Base64.getEncoder().encodeToString(new byte[32]));
     }
 
     @LocalServerPort
@@ -49,7 +50,8 @@ class FoundationIT {
                 Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForList(
                 "SELECT tablename FROM pg_tables WHERE schemaname = 'public'", String.class))
-                .containsExactly("flyway_schema_history");
+                .contains("flyway_schema_history", "users", "roles", "refresh_sessions", "refresh_tokens")
+                .doesNotContain("rooms", "reservations", "payments");
     }
 
     @Test
@@ -63,16 +65,15 @@ class FoundationIT {
     void exposesTheFoundationContractAndOpenApi() throws Exception {
         var response = get("/api/v1/system/info");
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("\"phase\":1", "Reservation Management System");
+        assertThat(response.body()).contains("\"phase\":2", "Reservation Management System");
         var documentation = get("/v3/api-docs");
         assertThat(documentation.statusCode()).isEqualTo(200);
         assertThat(documentation.body()).contains("/api/v1/system/info", "openapi");
     }
 
     @Test
-    void doesNotExposeFutureAuthenticationOrBusinessEndpoints() throws Exception {
-        assertThat(get("/api/v1/reservations").statusCode()).isEqualTo(404);
-        assertThat(get("/api/v1/auth/login").statusCode()).isEqualTo(404);
+    void requiresAuthenticationForUserResources() throws Exception {
+        assertThat(get("/api/v1/users/me").statusCode()).isEqualTo(401);
     }
 
     private HttpResponse<String> get(String path) throws Exception {

@@ -19,11 +19,11 @@ assert.equal((await ready.json()).status, 'UP')
 
 const info = await get('/api/v1/system/info')
 assert.equal(info.status, 200)
-assert.equal((await info.json()).phase, 1)
+assert.equal((await info.json()).phase, 2)
 
 const docs = await get('/v3/api-docs')
 assert.equal(docs.status, 200)
 assert.ok((await docs.json()).paths['/api/v1/system/info'])
 assert.equal((await get('/swagger-ui/index.html')).status, 200)
-assert.equal((await get('/api/v1/reservations')).status, 404)
+assert.equal((await get('/api/v1/users/me')).status, 401)
 console.log('Smoke OK: frontend, assets, proxy, readiness + PostgreSQL, API, OpenAPI and Swagger.')

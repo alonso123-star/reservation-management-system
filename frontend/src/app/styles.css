@@ -1,4 +1,5 @@
 :root {
+  /* The first phase palette is shared by the identity screens. */
   font-family: Inter, "Segoe UI", sans-serif;
   color: #183f37;
   background: #f7f6f1;

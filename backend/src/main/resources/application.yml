@@ -1,4 +1,7 @@
 spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   application:
     name: reservation-management-system
   datasource:
@@ -45,3 +48,13 @@ springdoc:
     enabled: ${API_DOCS_ENABLED:true}
   swagger-ui:
     enabled: ${API_DOCS_ENABLED:true}
+
+security:
+  auth:
+    jwt-secret: ${JWT_SECRET_BASE64}
+    issuer: reservation-management-system
+    audience: reservation-web
+    access-ttl: 15m
+    refresh-ttl: 7d
+    cookie-secure: ${AUTH_COOKIE_SECURE:true}
+    allowed-origins: ${AUTH_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8080}

@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: '24.12.0'
       - name: Create disposable local configuration
-        run: cp .env.example .env
+        run: node scripts/setup-env.mjs
       - run: docker compose config --quiet
       - run: docker compose up --build --wait --wait-timeout 240
       - run: node scripts/smoke.mjs

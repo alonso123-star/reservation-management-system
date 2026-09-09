@@ -2,7 +2,7 @@
 
 Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 
-**Estado:** Fase 0 aprobada. Fase 1 completada y verificada localmente. La autenticación, los roles y las funciones de negocio se implementarán a partir de las siguientes fases, previa autorización.
+**Estado:** Fases 0, 1 y 2 aprobadas; Fase 1 sincronizada con GitHub. La Fase 2 está verificada localmente y autorizada para staging. Su commit y push requieren autorización. La Fase 3 no ha comenzado.
 
 ## Incluido en esta base
 
@@ -14,6 +14,10 @@ Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 - Pruebas JUnit con PostgreSQL mediante Testcontainers y pruebas de interfaz con Vitest.
 - CI de frontend, backend y arranque completo con Compose.
 - Git, Maven Wrapper y lockfile de npm.
+- Registro de clientes, login, JWT, refresh con rotación y revocación, logout y cambio de contraseña.
+- Roles CLIENTE, EMPLEADO y ADMIN; permisos por rol y propiedad de sesión en el backend.
+- Pantallas de registro, acceso, perfil y sesiones activas con React Router, TanStack Query, React Hook Form y Zod.
+- Spring Security, CSRF, control de origen, límites de intentos y auditoría de identidad.
 
 ## Versiones
 
@@ -35,15 +39,15 @@ Las dependencias transitivas Java se gestionan mediante Spring Boot; las de fron
 
 ## Arranque con Docker
 
-Requisitos: Docker Desktop con motor Linux activo y Docker Compose. Esta ruta **no requiere Java ni Maven instalados en el equipo**.
+Requisitos: Docker Desktop con motor Linux activo, Docker Compose y Node.js para generar la configuración local. Esta ruta **no requiere Java ni Maven instalados en el equipo**.
 
 Desde la raíz del proyecto, en PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
+node scripts/setup-env.mjs
 ```
 
-Hazlo solo si todavía no existe `.env`. El archivo local puede haber sido creado durante la configuración inicial. Elige una contraseña local en `POSTGRES_PASSWORD`; no publiques ese archivo.
+El script crea `.env` o completa las claves que faltan, genera una contraseña PostgreSQL y una clave JWT aleatorias y conserva los valores ya configurados. No imprime secretos. `.env` está excluido de Git. También puedes copiar manualmente la plantilla y configurar ambos valores: la clave JWT debe ser Base64 de al menos 32 bytes aleatorios.
 
 ```powershell
 docker compose config --quiet
@@ -101,7 +105,7 @@ cd backend
 cd ..
 ```
 
-`verify` ejecuta las pruebas de integración con Maven Failsafe. `test` por sí solo no ejecuta `FoundationIT`.
+`verify` ejecuta las pruebas de integración con Maven Failsafe. `test` por sí solo no ejecuta `FoundationIT` ni `AuthenticationIT`. El conjunto incluye 21 pruebas backend con PostgreSQL real y 15 pruebas frontend.
 
 Prueba del conjunto ya arrancado, desde la raíz y con Node.js:
 
@@ -132,6 +136,8 @@ $databaseConfig = Get-Content .env -Raw | ConvertFrom-StringData
 $env:SPRING_DATASOURCE_URL = "jdbc:postgresql://localhost:$($databaseConfig.POSTGRES_PORT)/$($databaseConfig.POSTGRES_DB)"
 $env:SPRING_DATASOURCE_USERNAME = $databaseConfig.POSTGRES_USER
 $env:SPRING_DATASOURCE_PASSWORD = $databaseConfig.POSTGRES_PASSWORD
+$env:JWT_SECRET_BASE64 = $databaseConfig.JWT_SECRET_BASE64
+$env:AUTH_COOKIE_SECURE = "false"
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
@@ -140,25 +146,34 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 
 ## Estructura actual
 
-- `backend/`: aplicación, configuración, endpoint técnico, migración y pruebas de integración.
-- `frontend/`: aplicación React, cliente HTTP de salud y pruebas de conectividad.
+- `backend/`: módulos identity, users, audit y shared, migraciones y pruebas de integración.
+- `frontend/`: aplicación React, rutas, formularios de identidad, cliente HTTP y pruebas.
 - `infrastructure/nginx/`: archivos estáticos y proxy al backend.
 - `scripts/smoke.mjs`: comprobación HTTP del conjunto.
 - `.github/workflows/ci.yml`: verificación automática al hacer push o abrir un pull request.
 - `docs/plan-inicial.md`: planificación aprobada.
 - `docs/adr/0001-base-ejecutable.md`: decisiones de la Fase 1.
 - `docs/fase-1.md`: alcance y registro de verificación.
+- `docs/auth-api.md`: contrato de identidad, cookies, CSRF y errores.
+- `docs/adr/0002-identidad-autenticacion.md`: decisiones de seguridad y concurrencia.
+- `docs/fase-2.md`: alcance y comprobaciones de identidad.
 
 Los módulos de negocio se crearán cuando comience su fase, evitando carpetas vacías y código anticipado.
 
 ## Configuración y límites
 
-Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. La primera migración instala únicamente `btree_gist`; no hay tablas de usuarios, reservas ni pagos. Nunca se usa `ddl-auto=update` para modificar el esquema.
+Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade usuarios, roles, familias de sesión, hashes de refresh, auditoría y contadores de intentos. Todavía no hay tablas de habitaciones, reservas ni pagos. Nunca se usa `ddl-auto=update` para modificar el esquema.
 
 La comprobación de readiness incluye PostgreSQL. Un backend vivo sin acceso a su base no se considera listo. El endpoint no devuelve detalles internos.
 
 Swagger está habilitado para desarrollo. `API_DOCS_ENABLED=false` permite desactivarlo al configurar el backend. Solo se expone el endpoint Actuator de salud.
 
-Spring Security, JWT, registro, login, roles y sesiones están pendientes de Fase 2. No hay credenciales de acceso a la aplicación ni datos reales. Las credenciales de PostgreSQL del Compose son exclusivamente locales; su usuario administra la base para permitir las migraciones. La separación de permisos de migración y ejecución se evaluará para despliegue.
+Para probar la aplicación, crea una cuenta desde **Crear cuenta** y después inicia sesión. No hay usuarios privilegiados predeterminados. El registro siempre asigna CLIENTE. Crear personal y administrar roles corresponde a la Fase 8; las pruebas usan fixtures aislados para comprobar EMPLEADO y ADMIN.
 
-La CI está preparada para GitHub, pero su ejecución remota requiere subir el repositorio a un remoto autorizado. Inicializar Git no crea un repositorio remoto ni publica archivos.
+El JWT de acceso dura 15 minutos y se conserva solo en memoria. El refresh dura 7 días absolutos, rota y viaja en cookie HttpOnly/SameSite Strict. Reutilizar un refresh consumido revoca su familia. Logout invalida la sesión y cambiar contraseña invalida todas. La API comprueba usuario, rol, versión y sesión en PostgreSQL en cada petición autenticada.
+
+CSRF y Origin son obligatorios para todas las mutaciones, incluso desde herramientas HTTP. Consulta el contrato de identidad para la secuencia. Compose utiliza cookies sin Secure exclusivamente por su HTTP local; para HTTPS se debe usar Secure=true y configurar los orígenes autorizados. El backend por defecto exige Secure.
+
+Las credenciales de PostgreSQL son locales; su usuario administra la base para permitir las migraciones. Para despliegue quedan por definir permisos separados de migración, proxies confiables para límites por IP y retención/purga de sesiones y auditoría. El ADR detalla estos límites.
+
+La CI está configurada en GitHub. Las comprobaciones de esta Fase 2 son locales hasta autorizar su commit y push; no se afirma una ejecución remota de estos cambios.

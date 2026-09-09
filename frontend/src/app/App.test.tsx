@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import App from './App'
+import App from './Home'
 
 describe('foundation connectivity', () => {
   it('shows readiness after the health contract reports UP', async () => {

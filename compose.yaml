@@ -25,6 +25,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-reservation_management}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-reservation_app}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?Generate JWT_SECRET_BASE64 in .env using scripts/setup-env.mjs}
+      AUTH_COOKIE_SECURE: "false"
+      AUTH_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-3000},http://localhost:5173,http://localhost:${BACKEND_PORT:-8080}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:
