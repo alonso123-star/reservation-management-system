@@ -7,6 +7,8 @@ import { LoginPage, RegisterPage } from '../features/auth/AuthPages'
 import { AccountPage } from '../features/auth/AccountPage'
 import { errorMessage, logout } from '../features/auth/api/auth'
 import Home from './Home'
+import { CatalogPage, CatalogDetail } from '../features/rooms/CatalogPage'
+import { RoleGuard } from '../features/rooms/RoleGuard'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000 } } })
 
@@ -22,6 +24,8 @@ function Layout() {
         <span>Reservation<span className="brand-subtitle">Management System</span></span>
       </Link>
       <nav className="auth-nav" aria-label="Navegación principal">
+        <Link to="/catalog/types">Catálogo</Link>
+        {user && user.role !== 'CLIENTE' && <Link to="/staff/catalog/rooms">Inventario</Link>}
         {ready && (user ? <>
           <Link to="/account">Mi cuenta</Link>
           <button className="nav-button" disabled={leaving} onClick={async () => {
@@ -37,13 +41,19 @@ function Layout() {
     <main>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/catalog/types" element={<CatalogPage kind="types" key="public-types" />} />
+        <Route path="/catalog/rooms" element={<CatalogPage kind="rooms" key="public-rooms" />} />
+        <Route path="/catalog/types/:id" element={<CatalogDetail kind="types" />} />
+        <Route path="/catalog/rooms/:id" element={<CatalogDetail kind="rooms" />} />
+        <Route path="/staff/catalog/types" element={<RoleGuard><CatalogPage kind="types" staff key="staff-types" /></RoleGuard>} />
+        <Route path="/staff/catalog/rooms" element={<RoleGuard><CatalogPage kind="rooms" staff key="staff-rooms" /></RoleGuard>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/account" element={<RequireAuth><AccountPage /></RequireAuth>} />
         <Route path="*" element={<section className="account-page"><h1>Página no encontrada</h1><Link to="/">Volver al inicio</Link></section>} />
       </Routes>
     </main>
-    <footer><span>Reservation Management System</span><span>Proyecto de portafolio · Identidad y autenticación</span></footer>
+    <footer><span>Reservation Management System</span><span>Proyecto de portafolio · Catálogo del hotel</span></footer>
   </div>
 }
 

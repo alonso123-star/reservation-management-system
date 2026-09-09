@@ -11,7 +11,7 @@ Prefijo: /api/v1. OpenAPI ejecutable: http://localhost:3000/v3/api-docs. Swagger
 5. Renovar con POST /auth/refresh. Sustituir el acceso en memoria; el navegador actualiza la cookie automáticamente.
 6. Logout o cambio de contraseña eliminan el acceso en memoria y requieren login.
 
-En Swagger, Authorize configura el bearer; no omite el requisito CSRF y Origin para mutaciones. La interfaz React implementa el flujo completo.
+En Swagger, Authorize configura el bearer. Origin sigue siendo obligatorio en toda mutación. Aclaración verificada en Fase 3: Spring Resource Server exceptúa peticiones Bearer explícitas del filtro CSRF; las operaciones basadas en cookies requieren CSRF. La interfaz React envía la protección también con Bearer y mantiene el flujo completo descrito aquí. Las menciones CSRF de la tabla indican ese flujo recomendado del cliente.
 
 ## Endpoints implementados
 

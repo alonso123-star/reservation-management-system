@@ -2,7 +2,7 @@
 
 Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 
-**Estado:** Fases 0, 1 y 2 aprobadas; Fase 1 sincronizada con GitHub. La Fase 2 está verificada localmente y autorizada para staging. Su commit y push requieren autorización. La Fase 3 no ha comenzado.
+**Estado:** Fases 0, 1 y 2 aprobadas y sincronizadas con GitHub, base `33f3540`. Fase 3 de catálogo implementada localmente para revisión. Sin staging, commit ni push de esta entrega. Fase 4 no iniciada.
 
 ## Incluido en esta base
 
@@ -18,6 +18,8 @@ Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 - Roles CLIENTE, EMPLEADO y ADMIN; permisos por rol y propiedad de sesión en el backend.
 - Pantallas de registro, acceso, perfil y sesiones activas con React Router, TanStack Query, React Hook Form y Zod.
 - Spring Security, CSRF, control de origen, límites de intentos y auditoría de identidad.
+- Catálogo público de tipos y habitaciones, inventario ADMIN/EMPLEADO, filtros y paginación en PostgreSQL.
+- Formularios de catálogo, activación/desactivación, estados operativos, control optimista de edición y auditoría.
 
 ## Versiones
 
@@ -105,7 +107,7 @@ cd backend
 cd ..
 ```
 
-`verify` ejecuta las pruebas de integración con Maven Failsafe. `test` por sí solo no ejecuta `FoundationIT` ni `AuthenticationIT`. El conjunto incluye 21 pruebas backend con PostgreSQL real y 15 pruebas frontend.
+`verify` ejecuta las pruebas de integración con Maven Failsafe. `test` por sí solo no ejecuta `FoundationIT`, `AuthenticationIT` ni `CatalogIT`. El conjunto incluye 39 pruebas backend con PostgreSQL real y 35 pruebas frontend. En Windows, si los procesos de Vitest agotan el tiempo de inicio, utiliza `npm.cmd test -- --pool=threads --maxWorkers=1`; ejecuta la misma suite completa con un worker.
 
 Prueba del conjunto ya arrancado, desde la raíz y con Node.js:
 
@@ -146,8 +148,8 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 
 ## Estructura actual
 
-- `backend/`: módulos identity, users, audit y shared, migraciones y pruebas de integración.
-- `frontend/`: aplicación React, rutas, formularios de identidad, cliente HTTP y pruebas.
+- `backend/`: módulos identity, users, rooms, audit y shared, migraciones y pruebas de integración.
+- `frontend/`: aplicación React, catálogo público, inventario del personal, identidad, cliente HTTP y pruebas.
 - `infrastructure/nginx/`: archivos estáticos y proxy al backend.
 - `scripts/smoke.mjs`: comprobación HTTP del conjunto.
 - `.github/workflows/ci.yml`: verificación automática al hacer push o abrir un pull request.
@@ -157,12 +159,15 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 - `docs/auth-api.md`: contrato de identidad, cookies, CSRF y errores.
 - `docs/adr/0002-identidad-autenticacion.md`: decisiones de seguridad y concurrencia.
 - `docs/fase-2.md`: alcance y comprobaciones de identidad.
+- `docs/catalog-api.md`: rutas, filtros, permisos y concurrencia del catálogo.
+- `docs/adr/0003-catalogo.md`: decisiones de catálogo y límites del alcance.
+- `docs/fase-3.md`: informe y resultados de verificación de catálogo.
 
 Los módulos de negocio se crearán cuando comience su fase, evitando carpetas vacías y código anticipado.
 
 ## Configuración y límites
 
-Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade usuarios, roles, familias de sesión, hashes de refresh, auditoría y contadores de intentos. Todavía no hay tablas de habitaciones, reservas ni pagos. Nunca se usa `ddl-auto=update` para modificar el esquema.
+Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade usuarios, roles, familias de sesión, hashes de refresh, auditoría y contadores de intentos. V3 añade exclusivamente `room_types` y `rooms`, con restricciones e índices de catálogo. No hay tablas de reservas ni pagos. Nunca se usa `ddl-auto=update` para modificar el esquema ni se reescriben migraciones históricas.
 
 La comprobación de readiness incluye PostgreSQL. Un backend vivo sin acceso a su base no se considera listo. El endpoint no devuelve detalles internos.
 
@@ -172,8 +177,10 @@ Para probar la aplicación, crea una cuenta desde **Crear cuenta** y después in
 
 El JWT de acceso dura 15 minutos y se conserva solo en memoria. El refresh dura 7 días absolutos, rota y viaja en cookie HttpOnly/SameSite Strict. Reutilizar un refresh consumido revoca su familia. Logout invalida la sesión y cambiar contraseña invalida todas. La API comprueba usuario, rol, versión y sesión en PostgreSQL en cada petición autenticada.
 
-CSRF y Origin son obligatorios para todas las mutaciones, incluso desde herramientas HTTP. Consulta el contrato de identidad para la secuencia. Compose utiliza cookies sin Secure exclusivamente por su HTTP local; para HTTPS se debe usar Secure=true y configurar los orígenes autorizados. El backend por defecto exige Secure.
+Origin es obligatorio para todas las mutaciones, incluso desde herramientas HTTP. CSRF protege operaciones con cookies; Spring Resource Server exceptúa peticiones Bearer explícitas. React también envía CSRF con esas peticiones. Consulta los contratos de identidad y catálogo para la secuencia. Compose utiliza cookies sin Secure exclusivamente por su HTTP local; para HTTPS se debe usar Secure=true y configurar los orígenes autorizados. El backend por defecto exige Secure.
 
 Las credenciales de PostgreSQL son locales; su usuario administra la base para permitir las migraciones. Para despliegue quedan por definir permisos separados de migración, proxies confiables para límites por IP y retención/purga de sesiones y auditoría. El ADR detalla estos límites.
 
-La CI está configurada en GitHub. Las comprobaciones de esta Fase 2 son locales hasta autorizar su commit y push; no se afirma una ejecución remota de estos cambios.
+Catálogo público: `/catalog/types` y `/catalog/rooms`. Inventario del personal: `/staff/catalog/types` y `/staff/catalog/rooms`. Los tipos inactivos y las habitaciones no visibles quedan fuera del catálogo público. `ACTIVE` es estado operativo; no indica disponibilidad para fechas. La tarifa base usa PEN por defecto. No se implementan reservas ni disponibilidad en esta entrega.
+
+La CI está configurada en GitHub. Las comprobaciones de Fase 3 son locales hasta autorizar su commit y push; no se afirma una ejecución remota de estos cambios.

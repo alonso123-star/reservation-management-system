@@ -57,7 +57,7 @@ Refresh con 7 días de duración absoluta. Cada renovación consume su token y c
 
 Las operaciones sensibles bloquean usuario antes de sesión. La revocación por reuso se confirma aun cuando la respuesta sea 401; el cambio de contraseña invalida sesiones dentro de la misma transacción. Las pruebas concurrentes verifican estos resultados sobre PostgreSQL real.
 
-CSRF permanece activo en todas las mutaciones y se exige un Origin autorizado. Las cookies usan HttpOnly y SameSite Strict; Secure está activo por defecto y se desactiva únicamente en el Compose HTTP local.
+CSRF protege operaciones basadas en cookies y se exige un Origin autorizado en toda mutación. Aclaración de documentación realizada durante Fase 3: Resource Server exceptúa peticiones Bearer explícitas; React envía CSRF también en esas escrituras. No se cambió esa política durante Fase 3. Las cookies usan HttpOnly y SameSite Strict; Secure está activo por defecto y se desactiva únicamente en el Compose HTTP local.
 
 BCrypt usa coste 12; la contraseña requiere al menos 12 caracteres y no puede superar 72 bytes UTF-8. Registro siempre asigna CLIENTE y rechaza role, active y otros campos no permitidos.
 

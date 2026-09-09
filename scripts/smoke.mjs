@@ -19,11 +19,29 @@ assert.equal((await ready.json()).status, 'UP')
 
 const info = await get('/api/v1/system/info')
 assert.equal(info.status, 200)
-assert.equal((await info.json()).phase, 2)
+assert.equal((await info.json()).phase, 3)
 
 const docs = await get('/v3/api-docs')
 assert.equal(docs.status, 200)
-assert.ok((await docs.json()).paths['/api/v1/system/info'])
+const paths = (await docs.json()).paths
+for (const path of ['/api/v1/system/info', '/api/v1/room-types', '/api/v1/rooms', '/api/v1/rooms/{id}/status', '/api/v1/staff/room-types']) {
+  assert.ok(paths[path], 'OpenAPI must include ' + path)
+}
+for (const path of ['/api/v1/room-types', '/api/v1/rooms']) {
+  assert.ok(paths[path].get.responses['200'].content['application/json'].schema)
+  assert.ok(paths[path].post.responses['201'].content['application/json'].schema)
+  assert.ok(paths[path].post.responses['409'].content['application/problem+json'].schema)
+}
 assert.equal((await get('/swagger-ui/index.html')).status, 200)
 assert.equal((await get('/api/v1/users/me')).status, 401)
-console.log('Smoke OK: frontend, assets, proxy, readiness + PostgreSQL, API, OpenAPI and Swagger.')
+assert.equal((await get('/api/v1/staff/rooms')).status, 401)
+for (const path of ['/api/v1/room-types', '/api/v1/rooms']) {
+  const response = await get(path + '?page=0&size=2')
+  assert.equal(response.status, 200)
+  const catalog = await response.json()
+  assert.ok(Array.isArray(catalog.items))
+  assert.ok(catalog.items.length <= 2)
+  assert.equal(catalog.page, 0)
+  assert.equal(catalog.size, 2)
+}
+console.log('Smoke OK: frontend, assets, proxy, readiness + PostgreSQL, public catalog, protected inventory, OpenAPI and Swagger.')

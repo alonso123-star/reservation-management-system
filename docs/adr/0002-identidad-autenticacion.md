@@ -37,9 +37,9 @@ React comparte una promesa de renovación entre solicitudes y usa Web Locks para
 
 ## CSRF, origen y almacenamiento
 
-CSRF permanece activo en todas las mutaciones, incluido login y registro. GET /auth/csrf devuelve el nombre de cabecera y el token enmascarado de Spring; la cookie CSRF también es HttpOnly. La interfaz envía ambos de forma automática y renueva el token CSRF una vez ante CSRF_INVALID.
+CSRF protege operaciones basadas en cookies, incluido login y registro sin Bearer. Aclaración verificada durante Fase 3: Resource Server exceptúa las peticiones Bearer explícitas; no existe una desactivación global. GET /auth/csrf devuelve el nombre de cabecera y el token enmascarado de Spring; la cookie CSRF también es HttpOnly. La interfaz envía ambos de forma automática en todas sus mutaciones y renueva el token CSRF una vez ante CSRF_INVALID.
 
-Cada mutación exige Origin en una lista explícita. No hay CORS abierto; incluso un cliente CLI debe enviar Origin autorizado y CSRF. La configuración local usa localhost:3000, localhost:5173 y localhost:8080 (los puertos Compose configurables se reflejan en sus orígenes).
+Cada mutación exige Origin en una lista explícita. No hay CORS abierto; incluso un cliente CLI debe enviar Origin autorizado y CSRF cuando corresponde al flujo con cookies. La configuración local usa localhost:3000, localhost:5173 y localhost:8080 (los puertos Compose configurables se reflejan en sus orígenes).
 
 El acceso y los datos de sesión viven en memoria; no se guardan tokens en localStorage ni sessionStorage. Al recargar se recupera la sesión por refresh. Logout se comunica a otras pestañas mediante BroadcastChannel y se limpia la caché de TanStack Query.
 

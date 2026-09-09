@@ -16,7 +16,7 @@ public class OpenApiConfiguration {
                 new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
                 .info(new Info()
                 .title("Reservation Management System API")
-                .version("0.2.0")
-                .description("Identity API. Mutations require an allowed Origin and the CSRF cookie/header from GET /api/v1/auth/csrf. Public registration only creates CLIENTE users."));
+                .version("0.3.0")
+                .description("Identity and hotel catalog API. Mutations require an allowed Origin. Cookie-based operations require the CSRF cookie/header from GET /api/v1/auth/csrf; the frontend also sends it with bearer requests. Public registration only creates CLIENTE users. Catalog reads are public; inventory reads and room status changes require EMPLEADO or ADMIN; other catalog writes require ADMIN. PATCH requires the current version and returns 409 on conflict. Catalog activity is not date-based availability."));
     }
 }

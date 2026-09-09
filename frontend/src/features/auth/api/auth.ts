@@ -100,6 +100,8 @@ export function refreshSession(): Promise<void> {
   return refreshPending
 }
 
+export function publicGet<T>(path: string): Promise<T> { return raw<T>(path) }
+
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   if (!accessToken || Date.now() >= expiresAt - 5000) await refreshSession()
   try {

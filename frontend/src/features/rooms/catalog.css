@@ -1,0 +1,34 @@
+.catalog-page { padding: 42px 0; }
+.catalog-page h1 { font-size: clamp(32px,4vw,48px); }
+.catalog-subtitle { color: #64736b; line-height: 1.7; }
+.catalog-tabs { display: flex; gap: 22px; margin: 26px 0; }
+.catalog-tabs a { padding: 10px 0; border-bottom: 2px solid transparent; }
+.catalog-tabs a[aria-current="page"] { border-color: #183f37; font-weight: 700; }
+.catalog-filters { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; padding: 22px; border: 1px solid #dce1d5; border-radius: 10px; }
+.catalog-page label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.catalog-page input, .catalog-page select, .catalog-page textarea { font: inherit; padding: 10px; border: 1px solid #b9c7bc; border-radius: 5px; background: #fff; color: #183f37; max-width: 100%; }
+.catalog-page input:focus, .catalog-page select:focus, .catalog-page textarea:focus { outline: 2px solid #437750; outline-offset: 2px; }
+.catalog-page button { width: auto; padding: 11px 17px; }
+.catalog-page button:disabled { opacity: .5; cursor: not-allowed; }
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 22px; margin: 20px 0; }
+.catalog-grid article { min-width: 0; overflow-wrap: anywhere; }
+.catalog-grid p { line-height: 1.6; }
+.catalog-price { font-weight: 700; }
+.catalog-price span { font-size: 12px; font-weight: 400; color: #61715f; }
+.catalog-detail-link { text-decoration: underline; }
+.catalog-pagination, .catalog-actions, .picker-pages { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 20px; }
+.catalog-pagination { justify-content: center; }
+.catalog-editor { max-width: 680px; margin: 28px 0; }
+.catalog-editor .checkbox-label { flex-direction: row; align-items: center; }
+.catalog-editor input[type="checkbox"] { width: auto; }
+.catalog-create { margin-top: 24px; }
+.catalog-empty { padding: 36px; text-align: center; background: #edf0e7; border-radius: 10px; }
+.type-picker { display: grid; gap: 10px; }
+.picker-pages { margin-top: 0; font-size: 12px; }
+.picker-pages button { padding: 6px; }
+.status-form { display: grid; gap: 12px; margin-top: 20px; }
+.catalog-detail { max-width: 680px; margin-top: 24px; }
+@media(max-width:760px) {
+  .auth-nav { flex-wrap: wrap; }
+  .catalog-filters > label, .catalog-filters > .type-picker { width: 100%; }
+}

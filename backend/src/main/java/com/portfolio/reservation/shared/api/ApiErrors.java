@@ -68,7 +68,16 @@ public class ApiErrors {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    ResponseEntity<ProblemDetail> conflict(HttpServletRequest request) {
+    ResponseEntity<ProblemDetail> conflict(DataIntegrityViolationException exception, HttpServletRequest request) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof org.hibernate.exception.ConstraintViolationException constraint) {
+                String name = Objects.toString(constraint.getConstraintName(), "");
+                if (name.equals("uq_room_types_name") || name.equals("uq_rooms_code"))
+                    return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT,
+                            name.equals("uq_room_types_name") ? "TYPE_NAME_TAKEN" : "ROOM_CODE_TAKEN",
+                            "El nombre del tipo o código de habitación ya existe.", request));
+            }
+        }
         return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "DATA_CONFLICT",
                 "No se pudo completar la operación por un conflicto de datos.", request));
     }
@@ -77,6 +86,12 @@ public class ApiErrors {
     ResponseEntity<ProblemDetail> denied(HttpServletRequest request) {
         return ResponseEntity.status(403).body(problem(HttpStatus.FORBIDDEN, "ACCESS_DENIED",
                 "No tienes permiso para realizar esta operación.", request));
+    }
+
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    ResponseEntity<ProblemDetail> staleVersion(HttpServletRequest request) {
+        return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "STALE_VERSION",
+                "Otro usuario modificó este registro. Recarga antes de guardar.", request));
     }
 
     @ExceptionHandler(Exception.class)

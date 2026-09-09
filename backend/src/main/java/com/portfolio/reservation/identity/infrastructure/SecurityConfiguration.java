@@ -73,10 +73,13 @@ public class SecurityConfiguration {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
-                // Every mutation uses CSRF, including login and registration; no global bypass.
+                // Protect cookie-based operations, including login/registration. Resource Server
+                // exempts explicit bearer requests; Origin validation still applies to every mutation.
                 .csrf(config -> config.csrfTokenRepository(csrf))
                 .addFilterBefore(new RequestOriginFilter(properties, errors), CsrfFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/room-types", "/api/v1/room-types/{id}",
+                                "/api/v1/rooms", "/api/v1/rooms/{id}").permitAll()
                         .requestMatchers("/api/v1/auth/**", "/api/v1/system/**", "/v3/api-docs/**",
                                 "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                         .anyRequest().authenticated())

@@ -4,7 +4,7 @@
 
 Este documento conserva íntegramente la planificación propuesta para un sistema Full Stack de reservas de hotel orientado a un portafolio profesional.
 
-**Estado: arquitectura, reglas de negocio y Fases 0, 1 y 2 aprobadas por el usuario.** La Fase 1 está sincronizada con GitHub. La **Fase 2: Identidad y autenticación** está implementada y verificada localmente; su preparación en staging está autorizada. No se ha iniciado la Fase 3 ni se ha autorizado commit o push de esta entrega. Se conserva la planificación original a continuación; el detalle de la implementación actual está en `fase-2.md`, `auth-api.md` y `adr/0002-identidad-autenticacion.md`.
+**Estado: arquitectura, reglas de negocio y Fases 0, 1 y 2 aprobadas por el usuario.** Las Fases 1 y 2 están sincronizadas con GitHub en la base `33f3540`. La **Fase 3: Catálogo** está autorizada exclusivamente para implementación y verificación local; su entrega queda pendiente de revisión. No están autorizados staging, commit, push ni Fase 4. Se conserva la planificación original a continuación; el detalle de catálogo está en `fase-3.md`, `catalog-api.md` y `adr/0003-catalogo.md`.
 
 La carpeta del proyecto estaba vacía al realizar el análisis inicial. Se propone construir el sistema como un **monolito modular**, con React + TypeScript, una API REST en Spring Boot y PostgreSQL. Permitirá demostrar diseño de dominio, seguridad, transacciones, pruebas y despliegue reproducible sin añadir complejidad innecesaria.
 
@@ -416,4 +416,4 @@ El panel distinguirá ocupación, llegadas, salidas, reservas e ingresos simulad
 
 ## Estado de aprobación
 
-La arquitectura, las reglas de negocio y las Fases 0, 1 y 2 están aprobadas. El usuario autorizó revisar y preparar en staging los cambios de la Fase 2. La Fase 3, el commit y el push de estos cambios requieren autorización posterior.
+La arquitectura, las reglas de negocio y las Fases 0, 1 y 2 están aprobadas. La Fase 3 está autorizada exclusivamente como catálogo y su entrega requiere revisión. Los cambios se conservan en el working tree sin staging; commit, push y cualquier fase posterior requieren autorización posterior.
