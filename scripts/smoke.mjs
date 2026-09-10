@@ -19,7 +19,7 @@ assert.equal((await ready.json()).status, 'UP')
 
 const info = await get('/api/v1/system/info')
 assert.equal(info.status, 200)
-assert.equal((await info.json()).phase, 3)
+assert.equal((await info.json()).phase, 4)
 
 const docs = await get('/v3/api-docs')
 assert.equal(docs.status, 200)
@@ -44,4 +44,32 @@ for (const path of ['/api/v1/room-types', '/api/v1/rooms']) {
   assert.equal(catalog.page, 0)
   assert.equal(catalog.size, 2)
 }
-console.log('Smoke OK: frontend, assets, proxy, readiness + PostgreSQL, public catalog, protected inventory, OpenAPI and Swagger.')
+const availabilityPath = '/api/v1/rooms/availability'
+const availabilityOperation = paths[availabilityPath]?.get
+assert.ok(availabilityOperation, 'OpenAPI must describe availability')
+assert.ok(availabilityOperation.responses['200'].content['application/json'].schema)
+assert.ok(availabilityOperation.responses['400'].content['application/problem+json'].schema)
+assert.deepEqual(availabilityOperation.parameters.filter(p => p.required).map(p => p.name).sort(), ['checkIn', 'checkOut', 'guests'])
+assert.ok(!availabilityOperation.security?.length, 'Availability must be public')
+const available = await get(availabilityPath + '?checkIn=2026-10-10&checkOut=2026-10-12&guests=2&page=0&size=2&sort=basePrice,asc')
+assert.equal(available.status, 200)
+const stay = await available.json()
+assert.ok(Array.isArray(stay.items))
+assert.equal(stay.page, 0)
+assert.equal(stay.size, 2)
+assert.ok(stay.items.length <= 2)
+for (const room of stay.items) {
+  assert.equal(room.nights, 2)
+  assert.ok(room.roomType.capacity >= 2)
+  assert.equal(typeof room.estimatedTotal, 'number')
+  assert.equal(typeof room.roomType.currency, 'string')
+}
+for (const query of ['', '?checkIn=2026-10-10&checkOut=2026-10-10&guests=2', '?checkIn=2026-10-10&checkOut=2026-10-12&guests=0']) {
+  const response = await get(availabilityPath + query)
+  assert.equal(response.status, 400)
+  assert.match(response.headers.get('content-type') ?? '', /application\/problem\+json/)
+  const problem = await response.json()
+  assert.ok(problem.code && problem.requestId)
+}
+assert.equal((await get('/availability')).status, 200, 'Public SPA search route must be served')
+console.log('Smoke OK: frontend, assets, proxy, readiness + PostgreSQL, catalog, availability + validation, protected inventory, OpenAPI and Swagger.')

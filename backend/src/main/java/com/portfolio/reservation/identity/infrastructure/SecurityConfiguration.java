@@ -79,7 +79,7 @@ public class SecurityConfiguration {
                 .addFilterBefore(new RequestOriginFilter(properties, errors), CsrfFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/room-types", "/api/v1/room-types/{id}",
-                                "/api/v1/rooms", "/api/v1/rooms/{id}").permitAll()
+                                "/api/v1/rooms", "/api/v1/rooms/availability", "/api/v1/rooms/{id}").permitAll()
                         .requestMatchers("/api/v1/auth/**", "/api/v1/system/**", "/v3/api-docs/**",
                                 "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                         .anyRequest().authenticated())

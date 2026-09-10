@@ -9,6 +9,7 @@ import { errorMessage, logout } from '../features/auth/api/auth'
 import Home from './Home'
 import { CatalogPage, CatalogDetail } from '../features/rooms/CatalogPage'
 import { RoleGuard } from '../features/rooms/RoleGuard'
+import { AvailabilityPage } from '../features/rooms/AvailabilityPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000 } } })
 
@@ -25,6 +26,7 @@ function Layout() {
       </Link>
       <nav className="auth-nav" aria-label="Navegación principal">
         <Link to="/catalog/types">Catálogo</Link>
+        <Link to="/availability">Buscar estancia</Link>
         {user && user.role !== 'CLIENTE' && <Link to="/staff/catalog/rooms">Inventario</Link>}
         {ready && (user ? <>
           <Link to="/account">Mi cuenta</Link>
@@ -41,6 +43,7 @@ function Layout() {
     <main>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/availability" element={<AvailabilityPage />} />
         <Route path="/catalog/types" element={<CatalogPage kind="types" key="public-types" />} />
         <Route path="/catalog/rooms" element={<CatalogPage kind="rooms" key="public-rooms" />} />
         <Route path="/catalog/types/:id" element={<CatalogDetail kind="types" />} />

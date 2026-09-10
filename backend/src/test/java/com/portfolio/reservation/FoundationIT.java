@@ -66,7 +66,7 @@ class FoundationIT {
     void exposesTheFoundationContractAndOpenApi() throws Exception {
         var response = get("/api/v1/system/info");
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("\"phase\":3", "Reservation Management System");
+        assertThat(response.body()).contains("\"phase\":4", "Reservation Management System");
         var documentation = get("/v3/api-docs");
         assertThat(documentation.statusCode()).isEqualTo(200);
         assertThat(documentation.body()).contains("/api/v1/system/info", "openapi");

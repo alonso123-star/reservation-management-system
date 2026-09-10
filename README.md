@@ -2,7 +2,7 @@
 
 Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 
-**Estado:** Fases 0, 1 y 2 aprobadas y sincronizadas con GitHub, base `33f3540`. Fase 3 de catálogo implementada localmente para revisión. Sin staging, commit ni push de esta entrega. Fase 4 no iniciada.
+**Estado:** Fases 0–3 aprobadas y sincronizadas con GitHub en `2800709`. Fase 4 — Disponibilidad implementada localmente para revisión; consulta pública por fechas, huéspedes, tipo y precio con estimación de estancia. Véase [docs/fase-4.md](docs/fase-4.md). Sin staging, commit ni push de esta entrega. Fase 5 no iniciada.
 
 ## Incluido en esta base
 
@@ -20,6 +20,7 @@ Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 - Spring Security, CSRF, control de origen, límites de intentos y auditoría de identidad.
 - Catálogo público de tipos y habitaciones, inventario ADMIN/EMPLEADO, filtros y paginación en PostgreSQL.
 - Formularios de catálogo, activación/desactivación, estados operativos, control optimista de edición y auditoría.
+- Búsqueda pública por estancia y huéspedes, tipo, precio y paginación, con noches y total estimado calculados por el backend. La consulta es orientativa: todavía no existe persistencia de reservas y no bloquea habitaciones.
 
 ## Versiones
 
@@ -61,6 +62,7 @@ La primera construcción descarga imágenes y dependencias; puede tardar varios 
 | Servicio | Dirección predeterminada |
 |---|---|
 | Aplicación | http://localhost:3000 |
+| Búsqueda de estancia | http://localhost:3000/availability |
 | API técnica | http://localhost:3000/api/v1/system/info |
 | Disponibilidad de backend y PostgreSQL | http://localhost:3000/api/v1/system/health/readiness |
 | Swagger UI | http://localhost:3000/swagger-ui/index.html |
