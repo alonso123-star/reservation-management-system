@@ -8,6 +8,7 @@ import { price } from './api'
 import { searchAvailability } from './availability-api'
 import { availabilitySchema, type AvailabilityForm } from './availability-schema'
 import { TypePicker } from './TypePicker'
+import { BookingAction } from '../reservations/BookingAction'
 
 export function AvailabilityPage() {
   const [search, setSearch] = useState<{ filter: AvailabilityForm; attempt: number } | null>(null)
@@ -22,7 +23,7 @@ export function AvailabilityPage() {
   return <section className="catalog-page">
     <h1>Busca tu estancia</h1>
     <p className="catalog-subtitle">Encuentra habitaciones según tus fechas, huéspedes y presupuesto.</p>
-    <p className="catalog-subtitle">Resultados orientativos del catálogo. Por ahora no se descuenta la ocupación por reservas; esta consulta no confirma ni bloquea una habitación.</p>
+    <p className="catalog-subtitle">La búsqueda excluye reservas incompatibles. Los resultados son orientativos: la habitación se confirma al crear la reserva.</p>
     <form className="catalog-filters" noValidate onSubmit={handleSubmit(filter => {
       setPage(0); setSearch(previous => ({ filter, attempt: (previous?.attempt ?? 0) + 1 }))
     })}>
@@ -56,6 +57,7 @@ export function AvailabilityPage() {
         <p>{room.nights} {room.nights === 1 ? 'noche' : 'noches'}</p>
         <p className="catalog-price">Total estimado: {new Intl.NumberFormat('es-PE', { style: 'currency', currency: room.roomType.currency }).format(room.estimatedTotal)}</p>
         <Link className="catalog-detail-link" to={'/catalog/rooms/' + room.id}>Ver habitación</Link>
+        {search && <BookingAction key={search.attempt + ':' + room.id} room={room} filter={search.filter} refresh={() => setSearch(previous => previous && ({ ...previous, attempt: previous.attempt + 1 }))} />}
       </article>)}</div>
       <nav className="catalog-pagination" aria-label="Páginas de resultados">
         <button disabled={page === 0 || result.isFetching} onClick={() => setPage(page - 1)}>Anterior</button>

@@ -20,8 +20,8 @@ public final class AvailabilitySpecifications {
             if (filter.roomTypeId() != null) predicates.add(cb.equal(type.get("id"), filter.roomTypeId()));
             if (filter.minPrice() != null) predicates.add(cb.greaterThanOrEqualTo(type.get("basePrice"), filter.minPrice()));
             if (filter.maxPrice() != null) predicates.add(cb.lessThanOrEqualTo(type.get("basePrice"), filter.maxPrice()));
-            // Phase 5 can add a correlated exclusion predicate here, before SQL pagination/count.
-            // Dates currently determine the estimate only: no reservation table exists in Phase 4.
+            predicates.add(com.portfolio.reservation.reservations.infrastructure.ReservationOccupancy.free(
+                    root, query, cb, filter.checkIn(), filter.checkOut()));
             return cb.and(predicates.toArray(Predicate[]::new));
         };
     }

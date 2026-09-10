@@ -4,7 +4,6 @@ import com.portfolio.reservation.rooms.api.*;
 import com.portfolio.reservation.rooms.infrastructure.*;
 import com.portfolio.reservation.shared.api.*;
 import java.math.BigDecimal;
-import java.time.temporal.ChronoUnit;
 import java.util.Currency;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,11 +25,9 @@ public class AvailabilityService {
     }
 
     public PageView<AvailabilityView> search(AvailabilityQuery filter) {
-        if (!filter.checkIn().isBefore(filter.checkOut()))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STAY", "La salida debe ser posterior a la entrada.");
+        long nights = StayRules.nights(filter.checkIn(), filter.checkOut());
         if (filter.minPrice() != null && filter.maxPrice() != null && filter.minPrice().compareTo(filter.maxPrice()) > 0)
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_FILTER", "El precio mínimo no puede superar el máximo.");
-        long nights = ChronoUnit.DAYS.between(filter.checkIn(), filter.checkOut());
         var requested = PageView.request(filter.page(), filter.size(), filter.sort(), "code",
                 Set.of("code", "floor", "basePrice", "capacity", "id"));
         var sort = Sort.by(requested.getSort().stream().map(order -> switch (order.getProperty()) {

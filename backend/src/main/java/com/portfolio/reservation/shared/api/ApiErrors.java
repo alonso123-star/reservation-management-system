@@ -72,6 +72,9 @@ public class ApiErrors {
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof org.hibernate.exception.ConstraintViolationException constraint) {
                 String name = Objects.toString(constraint.getConstraintName(), "");
+                if (name.equals("ex_reservations_room_stay"))
+                    return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "ROOM_NOT_AVAILABLE",
+                            "La habitación ya no está disponible para esas fechas. Actualiza la búsqueda.", request));
                 if (name.equals("uq_room_types_name") || name.equals("uq_rooms_code"))
                     return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT,
                             name.equals("uq_room_types_name") ? "TYPE_NAME_TAKEN" : "ROOM_CODE_TAKEN",

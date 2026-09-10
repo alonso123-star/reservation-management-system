@@ -2,6 +2,7 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+      accept-float-as-int: false
   application:
     name: reservation-management-system
   datasource:

@@ -2,7 +2,7 @@
 
 Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 
-**Estado:** Fases 0–3 aprobadas y sincronizadas con GitHub en `2800709`. Fase 4 — Disponibilidad implementada localmente para revisión; consulta pública por fechas, huéspedes, tipo y precio con estimación de estancia. Véase [docs/fase-4.md](docs/fase-4.md). Sin staging, commit ni push de esta entrega. Fase 5 no iniciada.
+**Estado:** Fases 0–4 aprobadas y sincronizadas con GitHub en `bc82477`. Fase 5 — Reservas implementada localmente para revisión: creación, historial, cancelación, idempotencia y protección de solapamientos en PostgreSQL. Véase [docs/fase-5.md](docs/fase-5.md). Sin staging, commit ni push de esta entrega. Fase 6 no iniciada.
 
 ## Incluido en esta base
 
@@ -20,7 +20,9 @@ Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 - Spring Security, CSRF, control de origen, límites de intentos y auditoría de identidad.
 - Catálogo público de tipos y habitaciones, inventario ADMIN/EMPLEADO, filtros y paginación en PostgreSQL.
 - Formularios de catálogo, activación/desactivación, estados operativos, control optimista de edición y auditoría.
-- Búsqueda pública por estancia y huéspedes, tipo, precio y paginación, con noches y total estimado calculados por el backend. La consulta es orientativa: todavía no existe persistencia de reservas y no bloquea habitaciones.
+- Búsqueda pública por estancia y huéspedes, tipo, precio y paginación, que excluye reservas bloqueantes y calcula el total estimado. Consultar no bloquea habitaciones; crear la reserva vuelve a comprobar elegibilidad dentro de una transacción.
+- Reservas propias de CLIENTE y para clientes por EMPLEADO/ADMIN, precio histórico, historial, detalle, cancelación y auditoría atómica.
+- Idempotency-Key con recibo persistente y restricción PostgreSQL GiST que impide reservas solapadas incluso entre transacciones independientes.
 
 ## Versiones
 
@@ -63,6 +65,7 @@ La primera construcción descarga imágenes y dependencias; puede tardar varios 
 |---|---|
 | Aplicación | http://localhost:3000 |
 | Búsqueda de estancia | http://localhost:3000/availability |
+| Historial autenticado | http://localhost:3000/reservations |
 | API técnica | http://localhost:3000/api/v1/system/info |
 | Disponibilidad de backend y PostgreSQL | http://localhost:3000/api/v1/system/health/readiness |
 | Swagger UI | http://localhost:3000/swagger-ui/index.html |
@@ -109,7 +112,7 @@ cd backend
 cd ..
 ```
 
-`verify` ejecuta las pruebas de integración con Maven Failsafe. `test` por sí solo no ejecuta `FoundationIT`, `AuthenticationIT` ni `CatalogIT`. El conjunto incluye 39 pruebas backend con PostgreSQL real y 35 pruebas frontend. En Windows, si los procesos de Vitest agotan el tiempo de inicio, utiliza `npm.cmd test -- --pool=threads --maxWorkers=1`; ejecuta la misma suite completa con un worker.
+`verify` ejecuta las pruebas de integración con Maven Failsafe; `test` por sí solo no ejecuta las clases `*IT`. El conjunto incluye 107 pruebas backend con PostgreSQL real y 75 pruebas frontend. En Windows, si los procesos de Vitest agotan el tiempo de inicio, utiliza `npm.cmd test -- --pool=threads --maxWorkers=1`; ejecuta la misma suite completa con un worker. Los resultados de esta entrega se registran en `docs/fase-5.md`.
 
 Prueba del conjunto ya arrancado, desde la raíz y con Node.js:
 
@@ -118,6 +121,14 @@ node scripts/smoke.mjs
 ```
 
 Si cambias `FRONTEND_PORT`, indica la URL correspondiente en `SMOKE_BASE_URL`.
+
+Para comprobar también creación, reintento idempotente, disponibilidad y cancelación en el Compose local de puerto 3000:
+
+```powershell
+node scripts/reservations-smoke.mjs
+```
+
+Este segundo script requiere Docker y `.env` local. Crea datos sintéticos identificados por UUID, una cuenta temporal y una reserva; elimina únicamente sus propios datos al terminar. No imprime credenciales ni tokens. No está destinado a producción.
 
 ## Desarrollo con recarga del frontend
 
@@ -150,8 +161,8 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 
 ## Estructura actual
 
-- `backend/`: módulos identity, users, rooms, audit y shared, migraciones y pruebas de integración.
-- `frontend/`: aplicación React, catálogo público, inventario del personal, identidad, cliente HTTP y pruebas.
+- `backend/`: módulos identity, users, rooms, reservations, audit y shared, migraciones y pruebas de integración.
+- `frontend/`: aplicación React, catálogo, disponibilidad, reservas, inventario del personal, identidad, cliente HTTP y pruebas.
 - `infrastructure/nginx/`: archivos estáticos y proxy al backend.
 - `scripts/smoke.mjs`: comprobación HTTP del conjunto.
 - `.github/workflows/ci.yml`: verificación automática al hacer push o abrir un pull request.
@@ -164,12 +175,14 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 - `docs/catalog-api.md`: rutas, filtros, permisos y concurrencia del catálogo.
 - `docs/adr/0003-catalogo.md`: decisiones de catálogo y límites del alcance.
 - `docs/fase-3.md`: informe y resultados de verificación de catálogo.
+- `docs/fase-4.md`: informe histórico de la entrega de disponibilidad.
+- `docs/fase-5.md`: modelo, contrato, concurrencia, idempotencia y verificaciones de reservas.
 
 Los módulos de negocio se crearán cuando comience su fase, evitando carpetas vacías y código anticipado.
 
 ## Configuración y límites
 
-Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade usuarios, roles, familias de sesión, hashes de refresh, auditoría y contadores de intentos. V3 añade exclusivamente `room_types` y `rooms`, con restricciones e índices de catálogo. No hay tablas de reservas ni pagos. Nunca se usa `ddl-auto=update` para modificar el esquema ni se reescriben migraciones históricas.
+Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade identidad y auditoría; V3 añade exclusivamente catálogo. V4 añade `reservations` e `idempotency_requests`, con restricciones e índices. V1–V3 permanecen intactas. No hay tablas de pagos. Nunca se usa `ddl-auto=update` ni se reescriben migraciones históricas.
 
 La comprobación de readiness incluye PostgreSQL. Un backend vivo sin acceso a su base no se considera listo. El endpoint no devuelve detalles internos.
 
@@ -183,6 +196,8 @@ Origin es obligatorio para todas las mutaciones, incluso desde herramientas HTTP
 
 Las credenciales de PostgreSQL son locales; su usuario administra la base para permitir las migraciones. Para despliegue quedan por definir permisos separados de migración, proxies confiables para límites por IP y retención/purga de sesiones y auditoría. El ADR detalla estos límites.
 
-Catálogo público: `/catalog/types` y `/catalog/rooms`. Inventario del personal: `/staff/catalog/types` y `/staff/catalog/rooms`. Los tipos inactivos y las habitaciones no visibles quedan fuera del catálogo público. `ACTIVE` es estado operativo; no indica disponibilidad para fechas. La tarifa base usa PEN por defecto. No se implementan reservas ni disponibilidad en esta entrega.
+Catálogo público: `/catalog/types` y `/catalog/rooms`. Inventario: `/staff/catalog/types` y `/staff/catalog/rooms`. `ACTIVE` es estado operativo; no indica disponibilidad para fechas. La tarifa base usa PEN por defecto; cada reserva guarda tarifa, moneda e importe históricos. La cancelación usa `hotel.time-zone`, por defecto `America/Lima`.
 
-La CI está configurada en GitHub. Las comprobaciones de Fase 3 son locales hasta autorizar su commit y push; no se afirma una ejecución remota de estos cambios.
+La reserva se confirma sin pago en esta fase. Pagos/reembolsos, operaciones de check-in/check-out/no-show y dashboard completo siguen pendientes. Los estados futuros existen en el modelo, sin endpoints operativos.
+
+La CI está configurada en GitHub. Las comprobaciones de Fase 5 son locales hasta autorizar commit y push; no se afirma una ejecución remota de estos cambios.

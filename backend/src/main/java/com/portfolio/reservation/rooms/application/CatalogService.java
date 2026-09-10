@@ -24,10 +24,12 @@ public class CatalogService {
     private final AuditService audit;
     private final Clock clock;
     private final String currency;
+    private final CatalogReservationGuard reservationGuard;
     public CatalogService(RoomTypeRepository types, RoomRepository rooms, AuditService audit, Clock clock,
-            @Value("${hotel.currency:PEN}") String currency) {
+            @Value("${hotel.currency:PEN}") String currency, CatalogReservationGuard reservationGuard) {
         this.types = types; this.rooms = rooms; this.audit = audit; this.clock = clock;
         this.currency = Currency.getInstance(currency).getCurrencyCode();
+        this.reservationGuard = reservationGuard;
     }
     public PageView<CatalogViews.PublicType> publicTypes(CatalogFilters.Types f) {
         return PageView.from(findTypes(f, true).map(t -> CatalogViews.PublicType.from(t, currency)));
@@ -63,7 +65,8 @@ public class CatalogService {
     }
     @Transactional @PreAuthorize("hasRole('ADMIN')")
     public CatalogViews.TypeView patchType(UUID id, CatalogRequests.TypePatch b, Jwt jwt, UUID requestId) {
-        var t = type(id); version(b.version(), t.getVersion());
+        var t = types.lockById(id).orElseThrow(() -> missing("ROOM_TYPE")); version(b.version(), t.getVersion());
+        reservationGuard.type(id, or(b.active(), t.isActive()), or(b.capacity(), t.getCapacity()));
         boolean wasActive = t.isActive();
         t.update(or(b.name(), t.getName()), or(b.description(), t.getDescription()), or(b.capacity(), t.getCapacity()),
                 or(b.basePrice(), t.getBasePrice()), or(b.active(), t.isActive()), clock.instant());
@@ -80,7 +83,9 @@ public class CatalogService {
     }
     @Transactional @PreAuthorize("hasRole('ADMIN')")
     public CatalogViews.RoomView patchRoom(UUID id, CatalogRequests.RoomPatch b, Jwt jwt, UUID requestId) {
-        var r = room(id); version(b.version(), r.getVersion());
+        var r = rooms.lockById(id).orElseThrow(() -> missing("ROOM")); version(b.version(), r.getVersion());
+        if (Boolean.FALSE.equals(b.active()) || (b.operationalStatus() != null && b.operationalStatus() != Room.OperationalStatus.ACTIVE)
+                || (b.roomTypeId() != null && !b.roomTypeId().equals(r.getRoomType().getId()))) reservationGuard.room(id);
         boolean wasActive = r.isActive();
         r.update(or(b.code(), r.getCode()), b.roomTypeId() == null ? r.getRoomType() : type(b.roomTypeId()),
                 or(b.floor(), r.getFloor()), or(b.operationalStatus(), r.getOperationalStatus()), or(b.active(), r.isActive()), clock.instant());
@@ -91,7 +96,8 @@ public class CatalogService {
     }
     @Transactional @PreAuthorize("hasAnyRole('ADMIN','EMPLEADO')")
     public CatalogViews.RoomView patchStatus(UUID id, CatalogRequests.StatusPatch b, Jwt jwt, UUID requestId) {
-        var r = room(id); version(b.version(), r.getVersion());
+        var r = rooms.lockById(id).orElseThrow(() -> missing("ROOM")); version(b.version(), r.getVersion());
+        if (b.operationalStatus() != Room.OperationalStatus.ACTIVE) reservationGuard.room(id);
         r.update(r.getCode(), r.getRoomType(), r.getFloor(), b.operationalStatus(), r.isActive(), clock.instant());
         rooms.flush();
         record(jwt, "ROOM_STATUS_CHANGED", "ROOM", id, requestId);

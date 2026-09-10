@@ -12,6 +12,23 @@ beforeEach(() => {
 })
 
 describe('memory-only authentication client', () => {
+  it('preserves Idempotency-Key through both session and CSRF retries', async () => {
+    const keys: (string | null)[] = []
+    let attempts = 0
+    vi.stubGlobal('fetch', vi.fn(async (path: string, init?: RequestInit) => {
+      if (path.endsWith('/csrf')) return csrf()
+      if (path.endsWith('/login') || path.endsWith('/refresh')) return ok(grant())
+      keys.push(new Headers(init?.headers).get('Idempotency-Key'))
+      attempts++
+      if (attempts === 1) return new Response('{"code":"INVALID_SESSION"}', { status: 401 })
+      if (attempts === 2) return new Response('{"code":"CSRF_INVALID"}', { status: 403 })
+      return ok({ id: 'reservation-fixture' })
+    }))
+    const auth = await import('./auth')
+    await auth.login({ email: user.email, password: 'A test passphrase' })
+    await auth.api('/reservations', 'POST', { roomId: 'fixture' }, 'same-logical-request')
+    expect(keys).toEqual(['same-logical-request', 'same-logical-request', 'same-logical-request'])
+  })
   it('shares one rotation between simultaneous requests and never persists access tokens', async () => {
     const storage = vi.spyOn(Storage.prototype, 'setItem')
     const calls: { path: string; bearer: string | null }[] = []

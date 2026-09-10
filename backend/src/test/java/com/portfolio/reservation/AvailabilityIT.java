@@ -37,7 +37,7 @@ class AvailabilityIT {
 
     @BeforeEach void prepare() {
         client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-        jdbc.execute("TRUNCATE rooms, room_types");
+        jdbc.execute("TRUNCATE idempotency_requests, reservations, rooms, room_types");
         doubleType = type("Doble", 2, "125.50", true);
         room("A01", doubleType, "ACTIVE", true);
         room("A02", doubleType, "ACTIVE", true);
@@ -122,8 +122,8 @@ class AvailabilityIT {
         search(STAY);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM rooms", Integer.class)).isEqualTo(8);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class)).isZero();
-        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3");
-        assertThat(jdbc.queryForList("SELECT tablename FROM pg_tables WHERE schemaname='public'", String.class)).doesNotContain("reservations", "payments");
+        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4");
+        assertThat(jdbc.queryForList("SELECT tablename FROM pg_tables WHERE schemaname='public'", String.class)).contains("reservations", "idempotency_requests").doesNotContain("payments", "refunds");
     }
     @Test void documentsAllParametersPublicAccessSuccessAndProblemResponses() throws Exception {
         var document = json.readTree(get("/v3/api-docs").body());

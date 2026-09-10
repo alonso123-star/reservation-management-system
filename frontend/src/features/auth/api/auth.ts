@@ -53,9 +53,10 @@ async function getCsrf(): Promise<Csrf> {
   return csrfPending
 }
 
-async function raw<T>(path: string, method = 'GET', body?: unknown, authenticated = false, retryCsrf = true): Promise<T> {
+async function raw<T>(path: string, method = 'GET', body?: unknown, authenticated = false, retryCsrf = true, idempotencyKey?: string): Promise<T> {
   const headers = new Headers({ Accept: 'application/json' })
   if (body !== undefined) headers.set('Content-Type', 'application/json')
+  if (idempotencyKey) headers.set('Idempotency-Key', idempotencyKey)
   if (authenticated && accessToken) headers.set('Authorization', 'Bearer ' + accessToken)
   if (!['GET', 'HEAD'].includes(method)) {
     const csrf = await getCsrf()
@@ -70,7 +71,7 @@ async function raw<T>(path: string, method = 'GET', body?: unknown, authenticate
     const problem = await response.json().catch(() => ({})) as { code?: string; detail?: string; errors?: Record<string, string> }
     if (response.status === 403 && problem.code === 'CSRF_INVALID' && retryCsrf) {
       csrfValue = null
-      return raw<T>(path, method, body, authenticated, false)
+      return raw<T>(path, method, body, authenticated, false, idempotencyKey)
     }
     throw new ApiError(response.status, problem.code ?? 'REQUEST_FAILED',
       problem.detail ?? 'No se pudo completar la operación.', problem.errors)
@@ -102,14 +103,14 @@ export function refreshSession(): Promise<void> {
 
 export function publicGet<T>(path: string): Promise<T> { return raw<T>(path) }
 
-export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function api<T>(path: string, method = 'GET', body?: unknown, idempotencyKey?: string): Promise<T> {
   if (!accessToken || Date.now() >= expiresAt - 5000) await refreshSession()
   try {
-    return await raw<T>(path, method, body, true)
+    return await raw<T>(path, method, body, true, true, idempotencyKey)
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error
     await refreshSession()
-    return raw<T>(path, method, body, true)
+    return raw<T>(path, method, body, true, true, idempotencyKey)
   }
 }
 

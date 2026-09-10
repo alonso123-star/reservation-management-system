@@ -100,3 +100,11 @@ Los errores usan el mismo Problem Details (`application/problem+json`): `type`, 
 Las escrituras registran actor, acción, recurso, UUID y requestId usando AuditService, dentro de la misma transacción. Acciones: `ROOM_TYPE_CREATED`, `ROOM_TYPE_UPDATED`, `ROOM_TYPE_ACTIVATED`, `ROOM_TYPE_DEACTIVATED`, `ROOM_CREATED`, `ROOM_UPDATED`, `ROOM_ACTIVATED`, `ROOM_DEACTIVATED`, `ROOM_STATUS_CHANGED`. Si cambia actividad junto con otros campos se registra la acción de activación/desactivación; el PATCH general de habitación registra `ROOM_UPDATED` aunque también cambie estado. Los intentos que revierten por restricciones o concurrencia no generan auditoría de éxito. No se registran cuerpos de peticiones, contraseñas ni tokens. La consulta visual de auditoría queda para su fase futura.
 
 No hay cuentas privilegiadas predeterminadas ni nuevas rutas para asignar roles. El uso de ADMIN/EMPLEADO requiere usuarios previamente provisionados de forma controlada. Las pruebas de catálogo crean esos roles en su PostgreSQL efímero; no modifican usuarios de desarrollo.
+
+## Integración con reservas — Fase 5
+
+Las ediciones de habitación bloquean su fila; las ediciones de tipo bloquean su tipo. Crear una reserva bloquea primero habitación y después tipo, y vuelve a comprobar elegibilidad y tarifa dentro de esa transacción. Se mantiene también `version` para detectar formularios antiguos.
+
+Con reservas `CONFIRMED` o `CHECKED_IN` cuya salida sea posterior al día actual del hotel, se rechaza desactivar la habitación, pasarla a mantenimiento/fuera de servicio o cambiar su tipo. Desactivar un tipo o reducir su capacidad por debajo de los huéspedes de esas reservas también produce **409 `ROOM_HAS_RESERVATIONS`**. El guard comprueba las reservas después de obtener el bloqueo; la lectura no toma bloqueos adicionales de habitación al editar un tipo.
+
+Cambiar la tarifa base está permitido y no altera el precio histórico de reservas existentes. No se crean bloqueos temporales de inventario ni operaciones de recepción. El contrato de reservas y las pruebas se describen en [fase-5.md](fase-5.md).
