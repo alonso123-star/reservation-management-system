@@ -44,7 +44,7 @@ class CatalogIT {
     private final List<Client> clients = new ArrayList<>();
 
     @BeforeEach void prepare() {
-        jdbc.execute("TRUNCATE idempotency_requests, reservations, rooms, room_types, auth_rate_limits, audit_events, refresh_tokens, refresh_sessions, users");
+        jdbc.execute("TRUNCATE idempotency_requests, refunds, payments, reservations, rooms, room_types, auth_rate_limits, audit_events, refresh_tokens, refresh_sessions, users");
         if (hash == null) hash = encoder.encode(PASSWORD);
         for (String role : List.of("ADMIN", "EMPLEADO", "CLIENTE"))
             jdbc.update("""
@@ -270,7 +270,7 @@ class CatalogIT {
     @Test void migrationAndOpenApiContainOnlyTheCurrentCatalogScope() throws Exception {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version='3' AND success", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForList("SELECT tablename FROM pg_tables WHERE schemaname='public'", String.class))
-                .contains("room_types", "rooms").contains("reservations", "idempotency_requests").doesNotContain("payments", "refunds");
+                .contains("room_types", "rooms", "reservations", "idempotency_requests", "payments", "refunds");
         assertThat(jdbc.queryForList("SELECT indexname FROM pg_indexes WHERE schemaname='public'", String.class))
                 .contains("uq_room_types_name", "uq_rooms_code", "idx_rooms_type", "idx_rooms_catalog");
         var response = guest().http.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/v3/api-docs")).GET().build(), HttpResponse.BodyHandlers.ofString());

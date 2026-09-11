@@ -6,13 +6,14 @@ import { execFileSync } from 'node:child_process'
 // Local Compose only. Creates synthetic fixtures and removes only their exact IDs in finally.
 // Does not print passwords, cookies, access tokens or local configuration.
 const base = 'http://localhost:3000'
+const includePayments = process.argv.includes('--payments')
 const config = Object.fromEntries(readFileSync(new URL('../.env', import.meta.url), 'utf8').split(/\r?\n/)
   .filter(line => line && !line.startsWith('#')).map(line => { const at = line.indexOf('='); return [line.slice(0, at), line.slice(at + 1)] }))
 const fixture = { room: randomUUID(), type: randomUUID(), tag: randomUUID(), email: `smoke-${randomUUID()}@example.test`, password: randomBytes(24).toString('base64url') + 'aA1!' }
 const sql = statement => execFileSync('docker', ['compose', 'exec', '-T', 'db', 'psql', '-v', 'ON_ERROR_STOP=1', '-U', config.POSTGRES_USER, '-d', config.POSTGRES_DB, '-c', statement],
   { cwd: new URL('..', import.meta.url), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000 })
 const cookies = new Map()
-let csrf, access
+let csrf, access, approvedPayment
 async function request(path, method = 'GET', body, key) {
   const headers = new Headers({ Accept: 'application/json', Origin: base })
   if (cookies.size) headers.set('Cookie', [...cookies].map(([name, value]) => `${name}=${value}`).join('; '))
@@ -50,17 +51,54 @@ try {
   assert.equal(await availability(), 0)
   const history = await request('/api/v1/reservations'); assert.equal(history.status, 200); assert.equal(history.value.totalElements, 1)
   assert.equal((await request('/api/v1/reservations/' + created.value.id)).status, 200)
+  const paymentsPath = '/api/v1/reservations/' + created.value.id + '/payments'
+  if (includePayments) {
+    const declinedKey = randomUUID()
+    const declined = await request(paymentsPath, 'POST', {}, declinedKey)
+    assert.equal(declined.status, 201); assert.equal(declined.value.result, 'DECLINED')
+    const replayDeclined = await request(paymentsPath, 'POST', {}, declinedKey)
+    assert.equal(replayDeclined.status, 201); assert.deepEqual(replayDeclined.value, declined.value)
+    const firstHistory = await request(paymentsPath)
+    assert.equal(firstHistory.status, 200); assert.equal(firstHistory.value.attempts.totalElements, 1)
+    const approvedKey = randomUUID()
+    const approved = await request(paymentsPath, 'POST', {}, approvedKey)
+    assert.equal(approved.status, 201); assert.equal(approved.value.result, 'APPROVED')
+    assert.equal(approved.value.amount, created.value.totalAmount); assert.equal(approved.value.currency, created.value.currency)
+    approvedPayment = approved.value
+    const replayApproved = await request(paymentsPath, 'POST', {}, approvedKey)
+    assert.equal(replayApproved.status, 201); assert.deepEqual(replayApproved.value, approved.value)
+    const duplicate = await request(paymentsPath, 'POST', {}, randomUUID())
+    assert.equal(duplicate.status, 409); assert.equal(duplicate.value.code, 'RESERVATION_ALREADY_PAID')
+    const paidHistory = await request(paymentsPath)
+    assert.equal(paidHistory.status, 200); assert.equal(paidHistory.value.settlement, 'PAID')
+    assert.equal(paidHistory.value.attempts.totalElements, 2)
+  }
   const cancelled = await request('/api/v1/reservations/' + created.value.id + '/cancel', 'POST', { version: created.value.version, reason: 'Synthetic smoke completed' })
   assert.equal(cancelled.status, 200); assert.equal(cancelled.value.status, 'CANCELLED')
+  if (includePayments) {
+    const refunded = await request(paymentsPath)
+    assert.equal(refunded.status, 200); assert.equal(refunded.value.settlement, 'REFUNDED')
+    const payment = refunded.value.attempts.items.find(item => item.id === approvedPayment.id)
+    assert.equal(payment.refund.amount, approvedPayment.amount); assert.equal(payment.refund.currency, approvedPayment.currency)
+    assert.equal((await request('/api/v1/reservations/' + created.value.id + '/cancel', 'POST', { version: cancelled.value.version, reason: 'Synthetic repeated cancellation' })).status, 409)
+    const refundCount = sql(`SELECT count(*) FROM refunds WHERE payment_id='${approvedPayment.id}';`)
+    assert.match(refundCount, /\s1\s/)
+    const afterCancel = await request(paymentsPath, 'POST', {}, randomUUID())
+    assert.equal(afterCancel.status, 409); assert.equal(afterCancel.value.code, 'RESERVATION_NOT_PAYABLE')
+    console.log('Payment smoke OK: DECLINED/replay -> new APPROVED/replay -> duplicate blocked -> history -> paid cancellation -> one full refund -> post-cancellation payment blocked.')
+  }
   assert.equal(await availability(), 1)
   const docs = await request('/v3/api-docs'); assert.equal(docs.status, 200)
   assert.ok(docs.value.paths['/api/v1/reservations'].post.responses['201'])
   assert.ok(docs.value.paths['/api/v1/reservations/{id}/cancel'])
+  if (includePayments) assert.ok(docs.value.paths['/api/v1/reservations/{id}/payments'].post.responses['201'])
   assert.equal((await request('/api/v1/auth/logout', 'POST')).status, 204)
   console.log('Reservation smoke OK: catalog -> availability -> client login -> creation/replay -> blocked dates -> history/detail -> cancellation -> available dates -> OpenAPI.')
 } finally {
   sql(`BEGIN;
     DELETE FROM idempotency_requests WHERE reservation_id IN (SELECT id FROM reservations WHERE room_id='${fixture.room}') OR actor_id IN (SELECT id FROM users WHERE email='${fixture.email}');
+    DELETE FROM refunds WHERE payment_id IN (SELECT id FROM payments WHERE reservation_id IN (SELECT id FROM reservations WHERE room_id='${fixture.room}'));
+    DELETE FROM payments WHERE reservation_id IN (SELECT id FROM reservations WHERE room_id='${fixture.room}');
     DELETE FROM reservations WHERE room_id='${fixture.room}';
     DELETE FROM audit_events WHERE actor_id IN (SELECT id FROM users WHERE email='${fixture.email}');
     DELETE FROM refresh_tokens WHERE session_id IN (SELECT id FROM refresh_sessions WHERE user_id IN (SELECT id FROM users WHERE email='${fixture.email}'));

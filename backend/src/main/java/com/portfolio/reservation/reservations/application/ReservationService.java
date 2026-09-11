@@ -1,6 +1,7 @@
 package com.portfolio.reservation.reservations.application;
 
 import com.portfolio.reservation.audit.AuditService;
+import com.portfolio.reservation.payments.application.RefundService;
 import com.portfolio.reservation.reservations.api.*;
 import com.portfolio.reservation.reservations.domain.Reservation;
 import com.portfolio.reservation.reservations.infrastructure.*;
@@ -34,12 +35,16 @@ public class ReservationService {
     private final Clock clock;
     private final ZoneId zone;
     private final String currency;
+    private final ReservationAccess access;
+    private final RefundService refunds;
     public ReservationService(ReservationRepository reservations, RoomRepository rooms, RoomTypeRepository types,
             UserRepository users, IdempotencyStore receipts, AuditService audit, Clock clock,
-            @Value("${hotel.time-zone:America/Lima}") String zone, @Value("${hotel.currency:PEN}") String currency) {
+            @Value("${hotel.time-zone:America/Lima}") String zone, @Value("${hotel.currency:PEN}") String currency,
+            ReservationAccess access, RefundService refunds) {
         this.reservations = reservations; this.rooms = rooms; this.types = types; this.users = users;
         this.receipts = receipts; this.audit = audit; this.clock = clock;
         this.zone = ZoneId.of(zone); this.currency = Currency.getInstance(currency).getCurrencyCode();
+        this.access = access; this.refunds = refunds;
     }
     @Transactional @PreAuthorize("hasRole('CLIENTE')")
     public ReservationView create(ReservationRequests.Create body, UUID key, Jwt jwt, UUID requestId) {
@@ -96,20 +101,20 @@ public class ReservationService {
 
     @Transactional @PreAuthorize("hasAnyRole('CLIENTE','EMPLEADO','ADMIN')")
     public ReservationView cancel(UUID id, ReservationRequests.Cancel body, Jwt jwt, UUID requestId) {
-        var r = owned(id, jwt);
+        var r = access.lockOwned(id, jwt);
         if (r.getVersion() != body.version()) throw error(HttpStatus.CONFLICT, "STALE_VERSION", "La reserva cambió. Recarga antes de cancelar.");
         if (r.getStatus() != Reservation.Status.CONFIRMED)
             throw error(HttpStatus.CONFLICT, "INVALID_RESERVATION_STATE", "Solo se pueden cancelar reservas confirmadas antes del check-in.");
         if (!staff(jwt) && !today().isBefore(r.getCheckIn()))
             throw error(HttpStatus.BAD_REQUEST, "CANCELLATION_NOT_ALLOWED", "El cliente debe cancelar antes del día de entrada.");
+        refunds.refundForCancellation(id, body.reason(), actor(jwt), requestId);
         r.cancel(body.reason(), actor(jwt), clock.instant());
         reservations.flush();
         audit.record(actor(jwt), "RESERVATION_CANCELLED", "RESERVATION", id, requestId);
         return view(r, jwt);
     }
     private Reservation owned(UUID id, Jwt jwt) {
-        return reservations.findById(id).filter(r -> staff(jwt) || r.getCustomerId().equals(actor(jwt)))
-                .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "RESERVATION_NOT_FOUND", "Reserva no encontrada."));
+        return access.findOwned(id, jwt);
     }
     private ReservationView view(Reservation r, Jwt jwt) { return ReservationView.from(r, staff(jwt), today()); }
     private LocalDate today() { return LocalDate.now(clock.withZone(zone)); }

@@ -19,6 +19,9 @@ public class IdempotencyStore {
     public IdempotencyStore(JdbcTemplate jdbc, ObjectMapper json) { this.jdbc = jdbc; this.json = json; }
 
     public ReservationView claim(UUID actor, String operation, UUID key, String hash, Instant now) {
+        return claim(actor, operation, key, hash, now, ReservationView.class);
+    }
+    public <T> T claim(UUID actor, String operation, UUID key, String hash, Instant now, Class<T> responseType) {
         int inserted = jdbc.update("""
                 INSERT INTO idempotency_requests(id,actor_id,operation,request_key,request_hash,created_at,expires_at)
                 VALUES(?,?,?,?,?,?,?) ON CONFLICT (actor_id,operation,request_key) DO NOTHING
@@ -30,11 +33,14 @@ public class IdempotencyStore {
         if (!((Timestamp) receipt.get("expires_at")).toInstant().isAfter(now))
             throw conflict("IDEMPOTENCY_KEY_EXPIRED", "La clave venció. Consulta tu historial antes de iniciar otra reserva.");
         if (receipt.get("response_json") == null) throw conflict("REQUEST_IN_PROGRESS", "La operación aún no tiene un resultado.");
-        return json.readValue((String) receipt.get("response_json"), ReservationView.class);
+        return json.readValue((String) receipt.get("response_json"), responseType);
     }
     public void complete(UUID actor, String operation, UUID key, ReservationView response) {
-        int count = jdbc.update("UPDATE idempotency_requests SET reservation_id=?,response_json=? WHERE actor_id=? AND operation=? AND request_key=? AND reservation_id IS NULL",
-                response.id(), json.writeValueAsString(response), actor, operation, key);
+        complete(actor, operation, key, response.id(), null, response);
+    }
+    public void complete(UUID actor, String operation, UUID key, UUID reservationId, UUID paymentId, Object response) {
+        int count = jdbc.update("UPDATE idempotency_requests SET reservation_id=?,payment_id=?,response_json=? WHERE actor_id=? AND operation=? AND request_key=? AND reservation_id IS NULL",
+                reservationId, paymentId, json.writeValueAsString(response), actor, operation, key);
         if (count != 1) throw new IllegalStateException("Idempotency receipt was not claimed");
     }
     private static ApiException conflict(String code, String detail) { return new ApiException(HttpStatus.CONFLICT, code, detail); }

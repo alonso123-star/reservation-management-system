@@ -57,7 +57,7 @@ class AuthenticationIT {
     @BeforeEach
     void reset() {
         clock.reset();
-        jdbc.execute("TRUNCATE idempotency_requests, reservations, auth_rate_limits, audit_events, refresh_tokens, refresh_sessions, users");
+        jdbc.execute("TRUNCATE idempotency_requests, refunds, payments, reservations, auth_rate_limits, audit_events, refresh_tokens, refresh_sessions, users");
     }
 
     @AfterEach

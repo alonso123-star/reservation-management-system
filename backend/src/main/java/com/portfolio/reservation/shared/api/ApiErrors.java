@@ -72,6 +72,12 @@ public class ApiErrors {
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof org.hibernate.exception.ConstraintViolationException constraint) {
                 String name = Objects.toString(constraint.getConstraintName(), "");
+                if (name.equals("uq_payments_approved_reservation"))
+                    return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "RESERVATION_ALREADY_PAID",
+                            "La reserva ya tiene un pago aprobado.", request));
+                if (name.equals("uq_refunds_payment"))
+                    return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "REFUND_ALREADY_EXISTS",
+                            "El pago ya tiene un reembolso completo.", request));
                 if (name.equals("ex_reservations_room_stay"))
                     return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "ROOM_NOT_AVAILABLE",
                             "La habitación ya no está disponible para esas fechas. Actualiza la búsqueda.", request));

@@ -48,7 +48,7 @@ class ReservationIT {
     Map<String, UUID> users;
     List<Client> clients = new ArrayList<>();
     @BeforeEach void prepare() {
-        jdbc.execute("TRUNCATE idempotency_requests,reservations,rooms,room_types,auth_rate_limits,audit_events,refresh_tokens,refresh_sessions,users");
+        jdbc.execute("TRUNCATE idempotency_requests,refunds,payments,reservations,rooms,room_types,auth_rate_limits,audit_events,refresh_tokens,refresh_sessions,users");
         if (passwordHash == null) passwordHash = encoder.encode(PASSWORD);
         users = new HashMap<>();
         for (String name : List.of("a", "b", "employee", "admin")) {
@@ -281,7 +281,7 @@ class ReservationIT {
             assertThat(docs.path(path).path("post").path("security").toString()).contains("bearerAuth");
         assertThat(docs.path("/api/v1/reservations").path("post").path("parameters").toString()).contains("Idempotency-Key", "required");
         assertThat(docs.path("/api/v1/reservations").path("post").path("responses").has("201")).isTrue();
-        assertThat(docs.toString()).doesNotContain("/payments", "/check-in", "/check-out", "/no-show");
+        assertThat(docs.toString()).doesNotContain("/check-in", "/check-out", "/no-show");
     }
     @Test void migrationUpgradesExistingV3CatalogWithoutLosingData() throws Exception {
         try (var upgrade = new PostgreSQLContainer("postgres:18.6-alpine")) {
@@ -290,7 +290,7 @@ class ReservationIT {
             try (var connection = DriverManager.getConnection(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword())) {
                 connection.createStatement().execute("INSERT INTO room_types(id,name,description,capacity,base_price,created_at,updated_at) VALUES('00000000-0000-0000-0000-000000000005','Legacy','Keep',2,10,now(),now())");
             }
-            var flyway = org.flywaydb.core.Flyway.configure().dataSource(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword()).load();
+            var flyway = org.flywaydb.core.Flyway.configure().dataSource(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword()).target("4").load();
             assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1); flyway.validate();
             try (var connection = DriverManager.getConnection(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword())) {
                 var result = connection.createStatement().executeQuery("SELECT count(*) FROM room_types WHERE name='Legacy'"); result.next(); assertThat(result.getInt(1)).isEqualTo(1);

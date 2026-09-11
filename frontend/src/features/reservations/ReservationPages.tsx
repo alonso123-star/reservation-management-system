@@ -8,6 +8,7 @@ import { useAuth } from '../auth/useAuth'
 import { api, errorMessage } from '../auth/api/auth'
 import { history, money, statusLabels, type Reservation } from './api'
 import { CustomerPicker } from './CustomerPicker'
+import { PaymentPanel } from '../payments/PaymentPanel'
 
 const cancelSchema = z.object({ reason: z.string().trim().min(1, 'Indica el motivo.').max(500, 'Máximo 500 caracteres.') })
 
@@ -68,12 +69,14 @@ function CancelForm({ reservation }: { reservation: Reservation }) {
   const cancel = useMutation({ mutationFn: (reason: string) => api<Reservation>('/reservations/' + reservation.id + '/cancel', 'POST', { version: reservation.version, reason }),
     onSuccess: async value => {
       cache.setQueryData(['reservations', user?.id, 'detail', reservation.id], value)
-      await Promise.all([cache.invalidateQueries({ queryKey: ['reservations'] }), cache.invalidateQueries({ queryKey: ['availability'] })])
+      await Promise.all([cache.invalidateQueries({ queryKey: ['reservations'] }), cache.invalidateQueries({ queryKey: ['availability'] }),
+        cache.invalidateQueries({ queryKey: ['payments', user?.id, reservation.id] })])
     } })
   return <form className="status-form" onSubmit={handleSubmit(value => cancel.mutate(value.reason))}>
     <label>Motivo de cancelación<textarea maxLength={500} {...register('reason')} /></label>
     {errors.reason && <p role="alert">{errors.reason.message}</p>}
     <p>Al confirmar se cancelará la reserva y se liberarán las fechas.</p>
+    <p>Si tiene un pago aprobado, se generará automáticamente un reembolso simulado completo.</p>
     <button disabled={cancel.isPending}>{cancel.isPending ? 'Cancelando…' : 'Confirmar cancelación'}</button>
     {cancel.error && <div role="alert"><p>{errorMessage(cancel.error)}</p><button type="button" onClick={() => void cache.invalidateQueries({ queryKey: ['reservations'] })}>Actualizar reserva</button></div>}
   </form>
@@ -88,6 +91,7 @@ export function ReservationDetail() {
     {result.data && <article className="catalog-detail"><ReservationSummary value={result.data} />
       {user?.role !== 'CLIENTE' && <p>Cliente: {result.data.customerId} · Creada por: {result.data.createdBy}</p>}
       {result.data.canCancel && <CancelForm key={result.data.version} reservation={result.data} />}
+      <PaymentPanel reservationId={result.data.id} />
     </article>}
   </section>
 }

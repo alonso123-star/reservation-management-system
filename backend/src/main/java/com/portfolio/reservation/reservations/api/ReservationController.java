@@ -63,7 +63,7 @@ public class ReservationController {
     public ReservationView detail(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) { return reservations.detail(id, jwt); }
 
     @PostMapping("/reservations/{id}/cancel")
-    @Operation(summary = "Cancel a confirmed reservation", description = "Owner before arrival day in hotel.time-zone (America/Lima default), or EMPLEADO/ADMIN before operational check-in. Reason and current version are required. Preserves history, releases dates, records actor; no refund is performed in Phase 5.")
+    @Operation(summary = "Cancel a confirmed reservation", description = "Owner before arrival day in hotel.time-zone (America/Lima default), or EMPLEADO/ADMIN before operational check-in. Reason and current version are required. Locks the same reservation as payment, creates one automatic full simulated refund when an approved payment exists, and cancels atomically. Preserves history, releases dates and records actor. No independent refund endpoint.")
     @ApiResponse(responseCode = "200", description = "Cancelled reservation with updated version")
     public ReservationView cancel(@PathVariable UUID id, @Valid @RequestBody ReservationRequests.Cancel body,
             @AuthenticationPrincipal Jwt jwt, HttpServletRequest request) {

@@ -2,7 +2,7 @@
 
 Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 
-**Estado:** Fases 0–4 aprobadas y sincronizadas con GitHub en `bc82477`. Fase 5 — Reservas implementada localmente para revisión: creación, historial, cancelación, idempotencia y protección de solapamientos en PostgreSQL. Véase [docs/fase-5.md](docs/fase-5.md). Sin staging, commit ni push de esta entrega. Fase 6 no iniciada.
+**Estado:** Fases 0–5 aprobadas y sincronizadas con GitHub en `689b068`. Fase 6 — Pagos simulados implementada localmente para revisión: intentos, idempotencia, prevención de doble pago y reembolso completo automático al cancelar. Véase [docs/fase-6.md](docs/fase-6.md). Sin staging, commit ni push de esta entrega. Fase 7 no iniciada.
 
 ## Incluido en esta base
 
@@ -23,6 +23,7 @@ Sistema Full Stack de reservas de hotel, construido como un monolito modular.
 - Búsqueda pública por estancia y huéspedes, tipo, precio y paginación, que excluye reservas bloqueantes y calcula el total estimado. Consultar no bloquea habitaciones; crear la reserva vuelve a comprobar elegibilidad dentro de una transacción.
 - Reservas propias de CLIENTE y para clientes por EMPLEADO/ADMIN, precio histórico, historial, detalle, cancelación y auditoría atómica.
 - Idempotency-Key con recibo persistente y restricción PostgreSQL GiST que impide reservas solapadas incluso entre transacciones independientes.
+- Pagos simulados deterministas, historial de intentos/reembolsos y cancelación pagada atómica; PostgreSQL impide dos APPROVED por reserva o dos refunds por pago.
 
 ## Versiones
 
@@ -112,7 +113,7 @@ cd backend
 cd ..
 ```
 
-`verify` ejecuta las pruebas de integración con Maven Failsafe; `test` por sí solo no ejecuta las clases `*IT`. El conjunto incluye 107 pruebas backend con PostgreSQL real y 75 pruebas frontend. En Windows, si los procesos de Vitest agotan el tiempo de inicio, utiliza `npm.cmd test -- --pool=threads --maxWorkers=1`; ejecuta la misma suite completa con un worker. Los resultados de esta entrega se registran en `docs/fase-5.md`.
+`verify` ejecuta las pruebas de integración con Maven Failsafe; `test` por sí solo no ejecuta las clases `*IT`. Las 132 pruebas backend conservan las de Fases 2–5 y añaden pagos y reembolsos con PostgreSQL real; el frontend incluye 91 pruebas. En Windows, si los procesos de Vitest agotan el tiempo de inicio, utiliza `npm.cmd test -- --pool=threads --maxWorkers=1`; ejecuta la misma suite completa con un worker. Los números y resultados finales se registran en `docs/fase-6.md`.
 
 Prueba del conjunto ya arrancado, desde la raíz y con Node.js:
 
@@ -122,13 +123,13 @@ node scripts/smoke.mjs
 
 Si cambias `FRONTEND_PORT`, indica la URL correspondiente en `SMOKE_BASE_URL`.
 
-Para comprobar también creación, reintento idempotente, disponibilidad y cancelación en el Compose local de puerto 3000:
+Para comprobar también reserva, pago rechazado/aprobado, replays, prevención de doble pago, cancelación con reembolso y disponibilidad en el Compose local de puerto 3000:
 
 ```powershell
-node scripts/reservations-smoke.mjs
+node scripts/reservations-smoke.mjs --payments
 ```
 
-Este segundo script requiere Docker y `.env` local. Crea datos sintéticos identificados por UUID, una cuenta temporal y una reserva; elimina únicamente sus propios datos al terminar. No imprime credenciales ni tokens. No está destinado a producción.
+Este segundo script requiere Docker y `.env` local. Crea datos sintéticos identificados por UUID, una cuenta temporal, reserva e intentos de pago; elimina únicamente sus propios datos al terminar. Sin `--payments` conserva el recorrido de reserva sin pago. No imprime credenciales ni tokens. No está destinado a producción.
 
 ## Desarrollo con recarga del frontend
 
@@ -161,8 +162,8 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 
 ## Estructura actual
 
-- `backend/`: módulos identity, users, rooms, reservations, audit y shared, migraciones y pruebas de integración.
-- `frontend/`: aplicación React, catálogo, disponibilidad, reservas, inventario del personal, identidad, cliente HTTP y pruebas.
+- `backend/`: módulos identity, users, rooms, reservations, payments, audit y shared, migraciones y pruebas de integración.
+- `frontend/`: aplicación React, catálogo, disponibilidad, reservas, pagos simulados, inventario del personal, identidad, cliente HTTP y pruebas.
 - `infrastructure/nginx/`: archivos estáticos y proxy al backend.
 - `scripts/smoke.mjs`: comprobación HTTP del conjunto.
 - `.github/workflows/ci.yml`: verificación automática al hacer push o abrir un pull request.
@@ -177,12 +178,13 @@ Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la 
 - `docs/fase-3.md`: informe y resultados de verificación de catálogo.
 - `docs/fase-4.md`: informe histórico de la entrega de disponibilidad.
 - `docs/fase-5.md`: modelo, contrato, concurrencia, idempotencia y verificaciones de reservas.
+- `docs/fase-6.md`: simulador, pagos/refunds, locking, contratos y verificaciones de esta entrega.
 
 Los módulos de negocio se crearán cuando comience su fase, evitando carpetas vacías y código anticipado.
 
 ## Configuración y límites
 
-Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade identidad y auditoría; V3 añade exclusivamente catálogo. V4 añade `reservations` e `idempotency_requests`, con restricciones e índices. V1–V3 permanecen intactas. No hay tablas de pagos. Nunca se usa `ddl-auto=update` ni se reescriben migraciones históricas.
+Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade identidad y auditoría; V3 añade catálogo; V4 añade reservas e idempotencia. V5 incorpora payments/refunds y extiende los recibos para pagos. V1–V4 permanecen intactas. Nunca se usa `ddl-auto=update` ni se reescriben migraciones históricas.
 
 La comprobación de readiness incluye PostgreSQL. Un backend vivo sin acceso a su base no se considera listo. El endpoint no devuelve detalles internos.
 
@@ -198,6 +200,6 @@ Las credenciales de PostgreSQL son locales; su usuario administra la base para p
 
 Catálogo público: `/catalog/types` y `/catalog/rooms`. Inventario: `/staff/catalog/types` y `/staff/catalog/rooms`. `ACTIVE` es estado operativo; no indica disponibilidad para fechas. La tarifa base usa PEN por defecto; cada reserva guarda tarifa, moneda e importe históricos. La cancelación usa `hotel.time-zone`, por defecto `America/Lima`.
 
-La reserva se confirma sin pago en esta fase. Pagos/reembolsos, operaciones de check-in/check-out/no-show y dashboard completo siguen pendientes. Los estados futuros existen en el modelo, sin endpoints operativos.
+Una reserva se confirma inicialmente sin pago. Desde su detalle puede iniciarse el simulador: primer intento nuevo DECLINED y siguiente APPROVED; reintentar la misma clave conserva el resultado. No se solicitan datos de tarjeta ni se mueve dinero real. El backend usa el total y moneda históricos, y cancelar una reserva pagada genera un refund completo automáticamente. Check-in/check-out/no-show y dashboard completo siguen pendientes, sin endpoints operativos.
 
-La CI está configurada en GitHub. Las comprobaciones de Fase 5 son locales hasta autorizar commit y push; no se afirma una ejecución remota de estos cambios.
+La CI está configurada en GitHub. Las comprobaciones de Fase 6 son locales hasta autorizar commit y push; no se afirma una ejecución remota de estos cambios.

@@ -10,6 +10,8 @@ import type { Reservation } from './api'
 
 const auth = vi.hoisted(() => ({ user: null as User | null, ready: true }))
 vi.mock('../auth/useAuth', () => ({ useAuth: () => auth }))
+// PaymentPanel has its own suite, including integration with paid cancellation.
+vi.mock('../payments/PaymentPanel', () => ({ PaymentPanel: () => null }))
 vi.mock('../auth/api/auth', async importOriginal => ({ ...await importOriginal<typeof import('../auth/api/auth')>(), api: vi.fn() }))
 const user: User = { id: '00000000-0000-4000-8000-000000000001', name: 'Ana', email: 'ana@example.test', role: 'CLIENTE', createdAt: '' }
 const room = { id: '00000000-0000-4000-8000-000000000002', code: '101', floor: 1,

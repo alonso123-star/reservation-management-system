@@ -52,7 +52,7 @@ class FoundationIT {
                 "SELECT tablename FROM pg_tables WHERE schemaname = 'public'", String.class))
                 .contains("flyway_schema_history", "users", "roles", "refresh_sessions", "refresh_tokens")
                 .contains("room_types", "rooms")
-                .contains("reservations", "idempotency_requests").doesNotContain("payments", "refunds");
+                .contains("reservations", "idempotency_requests", "payments", "refunds");
     }
 
     @Test
@@ -66,7 +66,7 @@ class FoundationIT {
     void exposesTheFoundationContractAndOpenApi() throws Exception {
         var response = get("/api/v1/system/info");
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("\"phase\":5", "Reservation Management System");
+        assertThat(response.body()).contains("\"phase\":6", "Reservation Management System");
         var documentation = get("/v3/api-docs");
         assertThat(documentation.statusCode()).isEqualTo(200);
         assertThat(documentation.body()).contains("/api/v1/system/info", "openapi");
