@@ -2,6 +2,7 @@ package com.portfolio.reservation.reservations.application;
 
 import com.portfolio.reservation.audit.AuditService;
 import com.portfolio.reservation.payments.application.RefundService;
+import com.portfolio.reservation.reception.application.ReceptionService;
 import com.portfolio.reservation.reservations.api.*;
 import com.portfolio.reservation.reservations.domain.Reservation;
 import com.portfolio.reservation.reservations.infrastructure.*;
@@ -37,14 +38,16 @@ public class ReservationService {
     private final String currency;
     private final ReservationAccess access;
     private final RefundService refunds;
+    private final ReceptionService reception;
     public ReservationService(ReservationRepository reservations, RoomRepository rooms, RoomTypeRepository types,
             UserRepository users, IdempotencyStore receipts, AuditService audit, Clock clock,
             @Value("${hotel.time-zone:America/Lima}") String zone, @Value("${hotel.currency:PEN}") String currency,
-            ReservationAccess access, RefundService refunds) {
+            ReservationAccess access, RefundService refunds, ReceptionService reception) {
         this.reservations = reservations; this.rooms = rooms; this.types = types; this.users = users;
         this.receipts = receipts; this.audit = audit; this.clock = clock;
         this.zone = ZoneId.of(zone); this.currency = Currency.getInstance(currency).getCurrencyCode();
         this.access = access; this.refunds = refunds;
+        this.reception = reception;
     }
     @Transactional @PreAuthorize("hasRole('CLIENTE')")
     public ReservationView create(ReservationRequests.Create body, UUID key, Jwt jwt, UUID requestId) {
@@ -97,7 +100,7 @@ public class ReservationService {
                 .map(r -> view(r, jwt)));
     }
     @PreAuthorize("hasAnyRole('CLIENTE','EMPLEADO','ADMIN')")
-    public ReservationView detail(UUID id, Jwt jwt) { return view(owned(id, jwt), jwt); }
+    public ReservationView detail(UUID id, Jwt jwt) { return staff(jwt) ? reception.detail(id, jwt) : view(owned(id, jwt), jwt); }
 
     @Transactional @PreAuthorize("hasAnyRole('CLIENTE','EMPLEADO','ADMIN')")
     public ReservationView cancel(UUID id, ReservationRequests.Cancel body, Jwt jwt, UUID requestId) {

@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(value = "/api/v1", produces = "application/json")
-@Tag(name = "Reservations", description = "Creation, history and cancellation; no payment or reception operations")
+@Tag(name = "Reservations", description = "Creation, history and cancellation. Staff detail includes current reception capabilities; operational endpoints are documented under Reception.")
 @SecurityRequirement(name = "bearerAuth")
 @ApiResponses({
     @ApiResponse(responseCode = "400", description = "Invalid dates, guests, request, amount, cancellation policy or pagination", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),

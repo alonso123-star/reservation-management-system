@@ -30,6 +30,7 @@ function PaymentContent({ reservationId, userId }: { reservationId: string; user
       setResult(response); setUncertain(false); key.current = null
       setPage(0)
       void cache.invalidateQueries({ queryKey: ['payments', userId, reservationId] })
+      void cache.invalidateQueries({ queryKey: ['reservations', userId, 'detail', reservationId] })
     } catch (failure) { setError(failure); setUncertain(true) }
     finally { sending.current = false; setPending(false) }
   }

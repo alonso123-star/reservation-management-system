@@ -19,7 +19,7 @@ assert.equal((await ready.json()).status, 'UP')
 
 const info = await get('/api/v1/system/info')
 assert.equal(info.status, 200)
-assert.equal((await info.json()).phase, 6)
+assert.equal((await info.json()).phase, 7)
 
 const docs = await get('/v3/api-docs')
 assert.equal(docs.status, 200)

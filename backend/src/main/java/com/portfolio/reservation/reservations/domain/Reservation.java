@@ -45,6 +45,24 @@ public class Reservation {
         status = Status.CANCELLED; cancellationReason = reason.strip();
         cancelledBy = actor; cancelledAt = now; updatedAt = now;
     }
+    public void checkIn(Instant now) {
+        requireStatus(Status.CONFIRMED);
+        if (checkedInAt != null) throw new IllegalStateException("Check-in timestamp already exists");
+        status = Status.CHECKED_IN; checkedInAt = now; updatedAt = now;
+    }
+    public void checkOut(Instant now) {
+        requireStatus(Status.CHECKED_IN);
+        if (checkedInAt == null || checkedOutAt != null || now.isBefore(checkedInAt))
+            throw new IllegalStateException("Invalid checkout timestamps");
+        status = Status.CHECKED_OUT; checkedOutAt = now; updatedAt = now;
+    }
+    public void noShow(Instant now) {
+        requireStatus(Status.CONFIRMED);
+        status = Status.NO_SHOW; updatedAt = now;
+    }
+    private void requireStatus(Status expected) {
+        if (status != expected) throw new IllegalStateException("Incompatible reservation transition");
+    }
     public UUID getId() { return id; }
     public String getCode() { return code; }
     public UUID getCustomerId() { return customerId; }

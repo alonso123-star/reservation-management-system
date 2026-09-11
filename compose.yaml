@@ -27,6 +27,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:?Generate JWT_SECRET_BASE64 in .env using scripts/setup-env.mjs}
       AUTH_COOKIE_SECURE: "false"
+      HOTEL_TIME_ZONE: ${HOTEL_TIME_ZONE:-America/Lima}
+      HOTEL_ARRIVAL_DEADLINE: ${HOTEL_ARRIVAL_DEADLINE:-22:00}
       AUTH_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-3000},http://localhost:5173,http://localhost:${BACKEND_PORT:-8080}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"

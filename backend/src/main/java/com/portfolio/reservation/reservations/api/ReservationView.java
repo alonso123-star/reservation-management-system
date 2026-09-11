@@ -1,6 +1,7 @@
 package com.portfolio.reservation.reservations.api;
 
 import com.portfolio.reservation.reservations.domain.Reservation;
+import com.portfolio.reservation.reception.api.ReceptionView;
 import java.math.BigDecimal;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -11,13 +12,16 @@ public record ReservationView(UUID id, String code, UUID customerId, UUID create
         long nights, Reservation.Status status, BigDecimal agreedNightlyRate, BigDecimal totalAmount,
         String currency, String cancellationReason, UUID cancelledBy, Instant cancelledAt,
         Instant checkedInAt, Instant checkedOutAt, long version, Instant createdAt, Instant updatedAt,
-        boolean canCancel) {
+        boolean canCancel, ReceptionView reception) {
     public static ReservationView from(Reservation r, boolean staff, LocalDate today) {
+        return from(r, staff, today, null);
+    }
+    public static ReservationView from(Reservation r, boolean staff, LocalDate today, ReceptionView reception) {
         return new ReservationView(r.getId(), r.getCode(), r.getCustomerId(), r.getCreatedBy(), r.getRoom().getId(),
                 r.getRoom().getCode(), r.getRoom().getRoomType().getName(), r.getCheckIn(), r.getCheckOut(), r.getGuests(),
                 ChronoUnit.DAYS.between(r.getCheckIn(), r.getCheckOut()), r.getStatus(), r.getAgreedNightlyRate(),
                 r.getTotalAmount(), r.getCurrency(), r.getCancellationReason(), r.getCancelledBy(), r.getCancelledAt(),
                 r.getCheckedInAt(), r.getCheckedOutAt(), r.getVersion(), r.getCreatedAt(), r.getUpdatedAt(),
-                r.getStatus() == Reservation.Status.CONFIRMED && (staff || today.isBefore(r.getCheckIn())));
+                r.getStatus() == Reservation.Status.CONFIRMED && (staff || today.isBefore(r.getCheckIn())), reception);
     }
 }

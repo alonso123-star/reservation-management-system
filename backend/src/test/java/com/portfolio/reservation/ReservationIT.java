@@ -281,7 +281,7 @@ class ReservationIT {
             assertThat(docs.path(path).path("post").path("security").toString()).contains("bearerAuth");
         assertThat(docs.path("/api/v1/reservations").path("post").path("parameters").toString()).contains("Idempotency-Key", "required");
         assertThat(docs.path("/api/v1/reservations").path("post").path("responses").has("201")).isTrue();
-        assertThat(docs.toString()).doesNotContain("/check-in", "/check-out", "/no-show");
+        assertThat(docs.toString()).contains("/check-in", "/check-out", "/no-show");
     }
     @Test void migrationUpgradesExistingV3CatalogWithoutLosingData() throws Exception {
         try (var upgrade = new PostgreSQLContainer("postgres:18.6-alpine")) {

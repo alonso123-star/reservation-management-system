@@ -9,6 +9,7 @@ import { api, errorMessage } from '../auth/api/auth'
 import { history, money, statusLabels, type Reservation } from './api'
 import { CustomerPicker } from './CustomerPicker'
 import { PaymentPanel } from '../payments/PaymentPanel'
+import { ReceptionPanel } from '../reception/ReceptionPanel'
 
 const cancelSchema = z.object({ reason: z.string().trim().min(1, 'Indica el motivo.').max(500, 'Máximo 500 caracteres.') })
 
@@ -84,7 +85,8 @@ function CancelForm({ reservation }: { reservation: Reservation }) {
 export function ReservationDetail() {
   const { id } = useParams()
   const { user } = useAuth()
-  const result = useQuery({ queryKey: ['reservations', user?.id, 'detail', id], queryFn: () => api<Reservation>('/reservations/' + id), retry: false })
+  const result = useQuery({ queryKey: ['reservations', user?.id, 'detail', id], queryFn: () => api<Reservation>('/reservations/' + id), retry: false,
+    refetchInterval: user?.role !== 'CLIENTE' ? 30000 : false })
   return <section className="catalog-page"><h1>Detalle de reserva</h1><Link to="/reservations">Volver a reservas</Link>
     {result.isPending && <p role="status">Cargando reserva…</p>}
     {result.error && <p role="alert">{errorMessage(result.error)}</p>}
@@ -92,6 +94,7 @@ export function ReservationDetail() {
       {user?.role !== 'CLIENTE' && <p>Cliente: {result.data.customerId} · Creada por: {result.data.createdBy}</p>}
       {result.data.canCancel && <CancelForm key={result.data.version} reservation={result.data} />}
       <PaymentPanel reservationId={result.data.id} />
+      <ReceptionPanel reservation={result.data} />
     </article>}
   </section>
 }

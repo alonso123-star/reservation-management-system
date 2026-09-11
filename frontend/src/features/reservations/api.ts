@@ -7,6 +7,11 @@ export type Reservation = {
   status: 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'NO_SHOW'
   agreedNightlyRate: number; totalAmount: number; currency: string; cancellationReason: string | null
   cancelledBy: string | null; cancelledAt: string | null; version: number; canCancel: boolean
+  checkedInAt?: string | null; checkedOutAt?: string | null; reception?: ReceptionContext | null
+}
+export type ReceptionContext = {
+  customerName: string; hotelTimeZone: string; hotelDate: string; evaluatedAt: string; arrivalDeadline: string
+  fullyPaid: boolean; canCheckIn: boolean; canCheckOut: boolean; canNoShow: boolean
 }
 export const statusLabels: Record<Reservation['status'], string> = {
   CONFIRMED: 'Confirmada', CHECKED_IN: 'Ingresada', CHECKED_OUT: 'Finalizada', CANCELLED: 'Cancelada', NO_SHOW: 'No presentado',

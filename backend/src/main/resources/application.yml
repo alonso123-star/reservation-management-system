@@ -25,6 +25,11 @@ spring:
     clean-disabled: true
     validate-on-migrate: true
 
+hotel:
+  time-zone: ${HOTEL_TIME_ZONE:America/Lima}
+  reception:
+    arrival-deadline: ${HOTEL_ARRIVAL_DEADLINE:22:00}
+
 server:
   port: 8080
   shutdown: graceful

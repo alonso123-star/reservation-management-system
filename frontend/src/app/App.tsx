@@ -11,6 +11,7 @@ import { CatalogPage, CatalogDetail } from '../features/rooms/CatalogPage'
 import { RoleGuard } from '../features/rooms/RoleGuard'
 import { AvailabilityPage } from '../features/rooms/AvailabilityPage'
 import { ReservationHistory, ReservationDetail } from '../features/reservations/ReservationPages'
+import { ReceptionPage } from '../features/reception/ReceptionPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000 } } })
 
@@ -29,6 +30,7 @@ function Layout() {
         <Link to="/catalog/types">Catálogo</Link>
         <Link to="/availability">Buscar estancia</Link>
         {user && user.role !== 'CLIENTE' && <Link to="/staff/catalog/rooms">Inventario</Link>}
+        {user && user.role !== 'CLIENTE' && <Link to="/staff/reception">Recepción</Link>}
         {ready && (user ? <>
           <Link to="/account">Mi cuenta</Link>
           <Link to="/reservations">{user.role === 'CLIENTE' ? 'Mis reservas' : 'Reservas'}</Link>
@@ -48,6 +50,7 @@ function Layout() {
         <Route path="/availability" element={<AvailabilityPage />} />
         <Route path="/reservations" element={<RequireAuth><ReservationHistory /></RequireAuth>} />
         <Route path="/reservations/:id" element={<RequireAuth><ReservationDetail /></RequireAuth>} />
+        <Route path="/staff/reception" element={<ReceptionPage />} />
         <Route path="/catalog/types" element={<CatalogPage kind="types" key="public-types" />} />
         <Route path="/catalog/rooms" element={<CatalogPage kind="rooms" key="public-rooms" />} />
         <Route path="/catalog/types/:id" element={<CatalogDetail kind="types" />} />

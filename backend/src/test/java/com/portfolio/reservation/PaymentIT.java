@@ -251,7 +251,7 @@ class PaymentIT {
         for (String sql : List.of("UPDATE refunds SET amount=0", "UPDATE refunds SET currency='pen'", "UPDATE refunds SET reason=' '", "UPDATE refunds SET payment_id='00000000-0000-0000-0000-000000000099'"))
             assertThatThrownBy(() -> jdbc.update(sql)).isInstanceOf(DataIntegrityViolationException.class);
     }
-    @Test void openApiDocumentsPaymentPolicyAndNoManualRefundOrReceptionRoutes() throws Exception {
+    @Test void openApiDocumentsPaymentPolicyAndNoManualRefundRoute() throws Exception {
         var c = guest(); var docs = json.readTree(c.http.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/v3/api-docs")).GET().build(), HttpResponse.BodyHandlers.ofString()).body());
         var route = docs.path("paths").path("/api/v1/reservations/{id}/payments");
         for (String verb : List.of("get", "post")) {
@@ -261,7 +261,7 @@ class PaymentIT {
         assertThat(route.path("post").path("responses").has("201")).isTrue();
         assertThat(route.path("get").path("responses").has("200")).isTrue();
         assertThat(route.path("post").path("parameters").toString()).contains("Idempotency-Key", "required");
-        assertThat(docs.path("paths").toString()).doesNotContain("/refund", "/check-in", "/check-out", "/no-show");
+        assertThat(docs.path("paths").toString()).doesNotContain("/refund").contains("/check-in", "/check-out", "/no-show");
     }
     @Test void upgradeFromV4PreservesReservationAndExistingReceipt() throws Exception {
         try (var upgrade = new PostgreSQLContainer("postgres:18.6-alpine")) {
