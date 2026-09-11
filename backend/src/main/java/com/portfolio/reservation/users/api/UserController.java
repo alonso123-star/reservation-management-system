@@ -33,10 +33,6 @@ public class UserController {
     @GetMapping("/me")
     public UserView me(@AuthenticationPrincipal Jwt jwt) { return find(UUID.fromString(jwt.getSubject())); }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public UserView byId(@PathVariable UUID id) { return find(id); }
-
     @PutMapping("/me/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void password(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AuthRequests.PasswordChange body,

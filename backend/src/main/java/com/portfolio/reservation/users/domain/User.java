@@ -40,6 +40,10 @@ public class User {
     }
 
     public UUID getId() { return id; }
+    public void changeRole(Role value, Instant now) { role = value; securityVersion++; updatedAt = now; }
+    public void changeActive(boolean value, Instant now) { active = value; securityVersion++; updatedAt = now; }
+    public long getVersion() { return version; }
+    public Instant getUpdatedAt() { return updatedAt; }
     public Role getRole() { return role; }
     public String getName() { return name; }
     public String getEmail() { return email; }

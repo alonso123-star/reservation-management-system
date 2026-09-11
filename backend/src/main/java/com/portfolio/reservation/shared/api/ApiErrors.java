@@ -72,6 +72,9 @@ public class ApiErrors {
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof org.hibernate.exception.ConstraintViolationException constraint) {
                 String name = Objects.toString(constraint.getConstraintName(), "");
+                if (name.equals("users_email_key"))
+                    return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "EMAIL_UNAVAILABLE",
+                            "No se puede registrar ese correo.", request));
                 if (name.equals("uq_payments_approved_reservation"))
                     return ResponseEntity.status(409).body(problem(HttpStatus.CONFLICT, "RESERVATION_ALREADY_PAID",
                             "La reserva ya tiene un pago aprobado.", request));

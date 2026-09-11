@@ -275,7 +275,7 @@ class PaymentIT {
                 s.execute(reservationSql(reservation, "2030-10-10", "2030-10-12"));
                 s.execute("INSERT INTO idempotency_requests(id,actor_id,operation,request_key,request_hash,reservation_id,response_json,created_at,expires_at) VALUES('" + UUID.randomUUID() + "','" + users.get("a") + "','CREATE_RESERVATION','" + UUID.randomUUID() + "','" + "a".repeat(64) + "','" + reservation + "','{\"legacy\":true}',now(),now()+interval '24 hours')");
             }
-            var flyway = org.flywaydb.core.Flyway.configure().dataSource(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword()).load();
+            var flyway = org.flywaydb.core.Flyway.configure().dataSource(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword()).target("5").load();
             assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1); flyway.validate();
             try (var c = DriverManager.getConnection(upgrade.getJdbcUrl(), upgrade.getUsername(), upgrade.getPassword())) {
                 var rs = c.createStatement().executeQuery("SELECT r.total_amount,i.response_json,i.payment_id FROM reservations r JOIN idempotency_requests i ON i.reservation_id=r.id");

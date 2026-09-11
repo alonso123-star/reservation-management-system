@@ -12,6 +12,8 @@ import { RoleGuard } from '../features/rooms/RoleGuard'
 import { AvailabilityPage } from '../features/rooms/AvailabilityPage'
 import { ReservationHistory, ReservationDetail } from '../features/reservations/ReservationPages'
 import { ReceptionPage } from '../features/reception/ReceptionPage'
+import { UsersPage, CreateUserPage, AdminUserDetailPage } from '../features/administration/UsersPage'
+import { DashboardPage, AuditPage } from '../features/administration/ReportingPages'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000 } } })
 
@@ -31,6 +33,7 @@ function Layout() {
         <Link to="/availability">Buscar estancia</Link>
         {user && user.role !== 'CLIENTE' && <Link to="/staff/catalog/rooms">Inventario</Link>}
         {user && user.role !== 'CLIENTE' && <Link to="/staff/reception">Recepción</Link>}
+        {user?.role === 'ADMIN' && <Link to="/admin/dashboard">Administración</Link>}
         {ready && (user ? <>
           <Link to="/account">Mi cuenta</Link>
           <Link to="/reservations">{user.role === 'CLIENTE' ? 'Mis reservas' : 'Reservas'}</Link>
@@ -51,6 +54,11 @@ function Layout() {
         <Route path="/reservations" element={<RequireAuth><ReservationHistory /></RequireAuth>} />
         <Route path="/reservations/:id" element={<RequireAuth><ReservationDetail /></RequireAuth>} />
         <Route path="/staff/reception" element={<ReceptionPage />} />
+        <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/admin/users/new" element={<CreateUserPage />} />
+        <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+        <Route path="/admin/dashboard" element={<DashboardPage />} />
+        <Route path="/admin/audit-events" element={<AuditPage />} />
         <Route path="/catalog/types" element={<CatalogPage kind="types" key="public-types" />} />
         <Route path="/catalog/rooms" element={<CatalogPage kind="rooms" key="public-rooms" />} />
         <Route path="/catalog/types/:id" element={<CatalogDetail kind="types" />} />

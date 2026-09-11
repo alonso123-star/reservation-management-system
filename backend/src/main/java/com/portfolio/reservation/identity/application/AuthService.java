@@ -150,7 +150,7 @@ public class AuthService {
                 UserView.from(user));
     }
 
-    private static void requirePassword(String password) {
+    public static void requirePassword(String password) {
         if (password.length() < 12 || password.getBytes(StandardCharsets.UTF_8).length > 72)
             throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_POLICY", "Usa al menos 12 caracteres y como máximo 72 bytes UTF-8.");
     }

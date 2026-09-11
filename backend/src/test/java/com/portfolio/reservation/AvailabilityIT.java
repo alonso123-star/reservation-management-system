@@ -122,7 +122,7 @@ class AvailabilityIT {
         search(STAY);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM rooms", Integer.class)).isEqualTo(8);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class)).isZero();
-        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4", "5");
+        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4", "5", "6");
         assertThat(jdbc.queryForList("SELECT tablename FROM pg_tables WHERE schemaname='public'", String.class)).contains("reservations", "idempotency_requests", "payments", "refunds");
     }
     @Test void documentsAllParametersPublicAccessSuccessAndProblemResponses() throws Exception {

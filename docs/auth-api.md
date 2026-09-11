@@ -23,7 +23,7 @@ En Swagger, Authorize configura el bearer. Origin sigue siendo obligatorio en to
 | POST /auth/refresh | Sin cuerpo; cookie refresh. Respuesta: AccessView y nueva cookie | CSRF/origen y sesión válida; 200 |
 | POST /auth/logout | Sin cuerpo; cookie y bearer opcional | CSRF/origen; 204 idempotente sin credenciales |
 | GET /users/me | Respuesta: UserView | Autenticado; 200 |
-| GET /users/{id} | Respuesta: UserView | ADMIN; 200 |
+| GET /users/{id} | Respuesta: AdminUserView (ampliado en Fase 8) | ADMIN; 200 |
 | PUT /users/me/password | Entrada: currentPassword, newPassword | Autenticado, CSRF/origen; 204, revoca todas las sesiones |
 | GET /users/me/sessions | Lista de SessionView activas | Propietario autenticado; 200 |
 | DELETE /users/me/sessions/{id} | Sin cuerpo | Propietario, CSRF/origen; 204; ajena/inexistente 404 |
@@ -50,4 +50,4 @@ Formato application/problem+json con type, title, status, detail, code y request
 
 Un bearer vencido o revocado enviado incluso a un endpoint público puede producir 401. Logout permite repetir la petición sin ese bearer, conservando cookie y CSRF.
 
-No están implementadas las rutas de edición de perfil, listado o administración de usuarios, ni las rutas de catálogo, reservas y pagos del plan general.
+La edición de perfil sigue fuera del contrato. Catálogo, reservas y pagos se documentan en sus respectivas fases. Fase 8 añade listado, creación y cambios administrativos de rol/estado; véase [fase-8.md](fase-8.md). AdminUserView contiene id, name, email, role, active, version de edición, createdAt y updatedAt; no expone securityVersion ni secretos. Los contratos de /users/me y AccessView permanecen intactos.

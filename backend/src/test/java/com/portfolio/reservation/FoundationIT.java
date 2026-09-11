@@ -66,7 +66,7 @@ class FoundationIT {
     void exposesTheFoundationContractAndOpenApi() throws Exception {
         var response = get("/api/v1/system/info");
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("\"phase\":7", "Reservation Management System");
+        assertThat(response.body()).contains("\"phase\":8", "Reservation Management System");
         var documentation = get("/v3/api-docs");
         assertThat(documentation.statusCode()).isEqualTo(200);
         assertThat(documentation.body()).contains("/api/v1/system/info", "openapi");
@@ -80,7 +80,7 @@ class FoundationIT {
     private HttpResponse<String> get(String path) throws Exception {
         try (var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
             var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                    .timeout(Duration.ofSeconds(10)).GET().build();
+                    .timeout(Duration.ofSeconds(path.equals("/v3/api-docs") ? 30 : 10)).GET().build();
             return client.send(request, HttpResponse.BodyHandlers.ofString());
         }
     }

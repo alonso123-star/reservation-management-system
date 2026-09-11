@@ -250,8 +250,8 @@ class ReceptionIT {
             for (String code : List.of("200", "400", "401", "403", "404", "409")) assertThat(route.path("responses").has(code)).isTrue();
             assertThat(route.path("security").toString()).contains("bearerAuth");
         }
-        assertThat(docs.toString()).contains("RESERVATION_NOT_FULLY_PAID", "ARRIVAL_DEADLINE_NOT_PASSED").doesNotContain("/admin/dashboard", "/admin/audit-events");
-        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4", "5");
+        assertThat(docs.toString()).contains("RESERVATION_NOT_FULLY_PAID", "ARRIVAL_DEADLINE_NOT_PASSED", "/admin/dashboard", "/admin/audit-events");
+        assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4", "5", "6");
         assertThat(jdbc.queryForObject("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='ex_reservations_room_stay'", String.class))
                 .contains("CONFIRMED", "CHECKED_IN", "CHECKED_OUT").doesNotContain("NO_SHOW", "CANCELLED");
     }
