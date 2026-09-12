@@ -6,22 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '../auth/useAuth'
 import { api, errorMessage } from '../auth/api/auth'
-import { history, money, statusLabels, type Reservation } from './api'
+import { history, statusLabels, type Reservation } from './api'
+import { ReservationIdentifier, ReservationSummary } from './ReservationSummary'
 import { CustomerPicker } from './CustomerPicker'
 import { PaymentPanel } from '../payments/PaymentPanel'
 import { ReceptionPanel } from '../reception/ReceptionPanel'
 
 const cancelSchema = z.object({ reason: z.string().trim().min(1, 'Indica el motivo.').max(500, 'Máximo 500 caracteres.') })
 
-function ReservationSummary({ value }: { value: Reservation }) {
-  return <>
-    <h2>{value.code}</h2><p>Habitación {value.roomCode} · {value.roomTypeName}</p>
-    <p>{value.checkIn} al {value.checkOut} · {value.nights} noches · {value.guests} huéspedes</p>
-    <p>{money(value.agreedNightlyRate, value.currency)} por noche · Total: {money(value.totalAmount, value.currency)} · {value.currency}</p>
-    <p>Estado: {statusLabels[value.status]}</p>
-    {value.cancellationReason && <p>Motivo: {value.cancellationReason}</p>}
-  </>
-}
 export function ReservationHistory() {
   const { user } = useAuth()
   const staff = user?.role !== 'CLIENTE'
@@ -52,7 +44,7 @@ export function ReservationHistory() {
     {result.error && <div role="alert"><p>{errorMessage(result.error)}</p><button onClick={() => void result.refetch()}>Reintentar</button></div>}
     {result.data && <>
       {result.data.items.length === 0 && <p className="catalog-empty">No hay reservas que coincidan.</p>}
-      <div className="catalog-grid">{result.data.items.map(value => <article className="feature-card" key={value.id}>
+      <div className="catalog-grid reservation-grid">{result.data.items.map(value => <article className="reservation-card" key={value.id}>
         <ReservationSummary value={value} /><Link to={'/reservations/' + value.id}>Ver detalle de reserva</Link>
       </article>)}</div>
       <nav className="catalog-pagination" aria-label="Páginas de reservas">
@@ -90,8 +82,8 @@ export function ReservationDetail() {
   return <section className="catalog-page"><h1>Detalle de reserva</h1><Link to="/reservations">Volver a reservas</Link>
     {result.isPending && <p role="status">Cargando reserva…</p>}
     {result.error && <p role="alert">{errorMessage(result.error)}</p>}
-    {result.data && <article className="catalog-detail"><ReservationSummary value={result.data} />
-      {user?.role !== 'CLIENTE' && <p>Cliente: {result.data.customerId} · Creada por: {result.data.createdBy}</p>}
+    {result.data && <article className="catalog-detail reservation-detail"><ReservationSummary value={result.data} compact={false} />
+      {user?.role !== 'CLIENTE' && <p className="reservation-actors">Cliente: <ReservationIdentifier value={result.data.customerId} compact={false} /> · Creada por: <ReservationIdentifier value={result.data.createdBy} compact={false} /></p>}
       {result.data.canCancel && <CancelForm key={result.data.version} reservation={result.data} />}
       <PaymentPanel reservationId={result.data.id} />
       <ReceptionPanel reservation={result.data} />

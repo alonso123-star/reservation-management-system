@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/useAuth'
 import { errorMessage } from '../auth/api/auth'
-import { history, money, statusLabels } from '../reservations/api'
+import { history } from '../reservations/api'
+import { ReservationIdentifier, ReservationSummary } from '../reservations/ReservationSummary'
 import { RoleGuard } from '../rooms/RoleGuard'
 
 export function ReceptionPage() {
@@ -36,9 +37,9 @@ function ReceptionList() {
     {result.error && <div role="alert"><p>{errorMessage(result.error)}</p><button onClick={() => void result.refetch()}>Reintentar</button></div>}
     {result.data && <>
       {result.data.items.length === 0 && <p>No hay reservas en esta vista.</p>}
-      <div className="catalog-grid">{result.data.items.map(r => <article key={r.id} className="feature-card">
-        <h2>{r.code}</h2><p>Cliente: {r.customerId}</p><p>Habitación {r.roomCode} · {r.roomTypeName}</p>
-        <p>{r.checkIn} al {r.checkOut} · {r.guests} huéspedes</p><p>{statusLabels[r.status]} · {money(r.totalAmount, r.currency)}</p>
+      <div className="catalog-grid reservation-grid">{result.data.items.map(r => <article key={r.id} className="reservation-card">
+        <ReservationSummary value={r} />
+        <p className="reservation-actors">Cliente: <ReservationIdentifier value={r.customerId} /></p>
         <Link to={'/reservations/' + r.id}>Consultar huésped, pago y acciones</Link>
       </article>)}</div>
       <nav className="catalog-pagination" aria-label="Páginas de recepción">

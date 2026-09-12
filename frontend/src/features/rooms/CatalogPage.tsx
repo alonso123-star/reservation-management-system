@@ -59,7 +59,7 @@ export function CatalogPage({ kind, staff = false }: { kind: Kind; staff?: boole
       setEditor(current); setEditorRevision(v => v + 1); await refresh()
     } catch (failure) { setError(failure) }
   }
-  return <section className="catalog-page">
+  return <section className={staff ? 'catalog-page inventory-page' : 'catalog-page'}>
     <p className="eyebrow">{staff ? 'INVENTARIO DEL HOTEL' : 'CONOCE EL HOTEL'}</p>
     <h1>{kind === 'types' ? 'Tipos de habitación' : 'Habitaciones'}</h1>
     <p className="catalog-subtitle">{staff ? 'Consulta el inventario y gestiona las acciones permitidas para tu rol.' : 'Explora las características y tarifas base de nuestro catálogo.'}</p>

@@ -1,18 +1,23 @@
-.catalog-page { padding: 42px 0; }
-.catalog-page h1 { font-size: clamp(32px,4vw,48px); }
+.catalog-page { padding: 30px 0; }
+.catalog-page h1 { font-size: clamp(28px,3.3vw,40px); margin-bottom: 16px; letter-spacing: -1px; }
 .catalog-subtitle { color: #64736b; line-height: 1.7; }
-.catalog-tabs { display: flex; gap: 22px; margin: 26px 0; }
+.catalog-tabs { display: flex; gap: 22px; margin: 18px 0; }
 .catalog-tabs a { padding: 10px 0; border-bottom: 2px solid transparent; }
 .catalog-tabs a[aria-current="page"] { border-color: #183f37; font-weight: 700; }
-.catalog-filters { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; padding: 22px; border: 1px solid #dce1d5; border-radius: 10px; }
+.catalog-filters { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,160px),1fr)); gap: 12px 16px; align-items: end; margin-top: 16px; padding: 16px; border: 1px solid #dce1d5; border-radius: 10px; background: #f1f3eb; }
+.catalog-filters > * { min-width: 0; }
+.catalog-filters input, .catalog-filters select { width: 100%; min-height: 40px; }
+.catalog-filters > button { min-height: 40px; justify-content: center; }
+.catalog-filters > .type-picker { grid-column: span 2; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: end; gap: 12px 16px; }
+.catalog-filters > .type-picker > p, .catalog-filters .picker-pages { grid-column: 1 / -1; }
 .catalog-page label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .catalog-page input, .catalog-page select, .catalog-page textarea { font: inherit; padding: 10px; border: 1px solid #b9c7bc; border-radius: 5px; background: #fff; color: #183f37; max-width: 100%; }
 .catalog-page input:focus, .catalog-page select:focus, .catalog-page textarea:focus { outline: 2px solid #437750; outline-offset: 2px; }
 .catalog-page button { width: auto; padding: 11px 17px; }
 .catalog-page button:disabled { opacity: .5; cursor: not-allowed; }
-.catalog-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 22px; margin: 20px 0; }
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,280px),1fr)); gap: 16px; margin: 16px 0; }
 .catalog-grid article { min-width: 0; overflow-wrap: anywhere; }
-.catalog-grid p { line-height: 1.6; }
+.catalog-grid p { line-height: 1.5; }
 .catalog-price { font-weight: 700; }
 .catalog-price span { font-size: 12px; font-weight: 400; color: #61715f; }
 .catalog-detail-link { text-decoration: underline; }
@@ -28,7 +33,48 @@
 .picker-pages button { padding: 6px; }
 .status-form { display: grid; gap: 12px; margin-top: 20px; }
 .catalog-detail { max-width: 680px; margin-top: 24px; }
+.reservation-grid { align-items: start; }
+.reservation-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #dce1d5; border-radius: 10px; background: #fcfcf8; }
+.reservation-card > a { font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; padding: 6px 0; }
+.reservation-summary { min-width: 0; }
+.reservation-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+.reservation-code { font: 600 14px/1.5 Inter, "Segoe UI", sans-serif; min-width: 0; max-width: 100%; margin: 0; }
+.reservation-identifier { font-family: ui-monospace, Consolas, monospace; font-size: .9em; overflow-wrap: anywhere; }
+.reservation-identifier.is-compact { display: inline-block; max-width: min(100%,22ch); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; vertical-align: bottom; }
+.reservation-badge { display: inline-flex; align-items: center; border: 1px solid; border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 600; line-height: 1.4; margin: 0; }
+.reservation-badge--confirmed { color: #28543d; background: #edf3e8; border-color: #b8cbb1; }
+.reservation-badge--checked_in { color: #17473d; background: #dfede5; border-color: #a3c5b3; }
+.reservation-badge--checked_out { color: #46564e; background: #eaf0eb; border-color: #bccac0; }
+.reservation-badge--cancelled { color: #813f31; background: #f9ece5; border-color: #dbb6a8; }
+.reservation-badge--no_show { color: #72551c; background: #f6efdc; border-color: #d9c590; }
+.reservation-summary > p { margin: 7px 0 0; font-size: 13px; line-height: 1.55; }
+.reservation-summary .reservation-room { font-size: 16px; font-weight: 600; color: #183f37; }
+.reservation-meta, .reservation-actors { color: #53675a; }
+.reservation-card .reservation-actors { margin: 0; font-size: 12px; line-height: 1.6; }
+.reservation-detail { max-width: 820px; }
+.reservation-detail > .reservation-summary { padding: 18px; border: 1px solid #dce1d5; border-radius: 10px; background: #fcfcf8; }
+.reservation-detail > .reservation-actors { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.reservation-detail > section { padding-top: 20px; margin-top: 20px; border-top: 1px solid #dce1d5; }
+.reservation-detail > section > h2 { font-size: 22px; margin-bottom: 12px; }
+.reservation-detail > section > p, .reservation-detail > .status-form p { font-size: 14px; line-height: 1.6; margin: 6px 0; }
+.reservation-detail > section > button { display: inline-flex; margin: 4px 8px 4px 0; min-height: 40px; }
+.inventory-page .catalog-grid > .auth-card { padding: 18px; }
+.inventory-page .catalog-grid h2 { font: 600 19px/1.35 Inter, "Segoe UI", sans-serif; margin-bottom: 10px; }
+.inventory-page .catalog-grid p { font-size: 13px; margin: 8px 0; }
+.inventory-page .catalog-grid .catalog-price { font-size: 15px; }
+.inventory-page .status-form { grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; margin-top: 14px; }
+.inventory-page .status-form label { display: flex; margin: 0; }
+.inventory-page .status-form select { width: 100%; min-width: 0; }
+.inventory-page .catalog-actions { gap: 8px; margin-top: 12px; }
+.inventory-page .catalog-actions button { flex: 1; justify-content: center; }
+.inventory-page .catalog-grid button { min-height: 40px; }
 @media(max-width:760px) {
   .auth-nav { flex-wrap: wrap; }
-  .catalog-filters > label, .catalog-filters > .type-picker { width: 100%; }
+  .catalog-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:520px) {
+  .catalog-filters { grid-template-columns: minmax(0,1fr); padding: 14px; }
+  .catalog-filters > .type-picker { grid-column: auto; grid-template-columns: minmax(0,1fr); }
+  .reservation-card, .inventory-page .catalog-grid > .auth-card { padding: 16px; }
+  .inventory-page .status-form { grid-template-columns: minmax(0,1fr); }
 }
