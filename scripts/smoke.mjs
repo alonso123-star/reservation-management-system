@@ -19,11 +19,20 @@ assert.equal((await ready.json()).status, 'UP')
 
 const info = await get('/api/v1/system/info')
 assert.equal(info.status, 200)
-assert.equal((await info.json()).phase, 8)
+assert.equal((await info.json()).phase, 9)
 
 const docs = await get('/v3/api-docs')
 assert.equal(docs.status, 200)
-const paths = (await docs.json()).paths
+const document = await docs.json()
+assert.equal(document.info.version, '0.9.0')
+const paths = document.paths
+for (const path of ['/auth/login', '/auth/refresh', '/users/me', '/reservations', '/reservations/{id}/payments', '/reservations/{id}/cancel', '/reservations/{id}/check-in', '/reservations/{id}/check-out', '/reservations/{id}/no-show', '/users', '/admin/dashboard', '/admin/audit-events']) {
+  assert.ok(paths['/api/v1' + path], 'OpenAPI must include ' + path)
+}
+assert.equal(document.components.schemas.AdminUserCreate.properties.password.writeOnly, true)
+const bookingSchema = paths['/api/v1/reservations'].post.requestBody.content['application/json'].schema.$ref.split('/').at(-1)
+assert.ok(document.components.schemas[bookingSchema].properties.roomId)
+assert.equal(document.components.schemas[bookingSchema].properties.password, undefined)
 for (const path of ['/api/v1/system/info', '/api/v1/room-types', '/api/v1/rooms', '/api/v1/rooms/{id}/status', '/api/v1/staff/room-types']) {
   assert.ok(paths[path], 'OpenAPI must include ' + path)
 }

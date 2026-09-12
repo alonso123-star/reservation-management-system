@@ -71,7 +71,7 @@ function Layout() {
         <Route path="*" element={<section className="account-page"><h1>Página no encontrada</h1><Link to="/">Volver al inicio</Link></section>} />
       </Routes>
     </main>
-    <footer><span>Reservation Management System</span><span>Proyecto de portafolio · Catálogo del hotel</span></footer>
+    <footer><span>Reservation Management System</span><span>Proyecto de portafolio · Gestión hotelera integral</span></footer>
   </div>
 }
 

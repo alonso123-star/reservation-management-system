@@ -14,7 +14,7 @@ public class SystemController {
     @GetMapping("/info")
     @Operation(summary = "Read application identity and implementation phase")
     public SystemInfo info() {
-        return new SystemInfo("Reservation Management System", "0.8.0", 8);
+        return new SystemInfo("Reservation Management System", "0.9.0", 9);
     }
 
     public record SystemInfo(String name, String version, int phase) {

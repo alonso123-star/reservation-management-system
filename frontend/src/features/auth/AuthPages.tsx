@@ -19,7 +19,7 @@ export function LoginPage() {
   if (user) return <Navigate to="/account" replace />
 
   return <section className="auth-page">
-    <div className="auth-intro"><p className="eyebrow">BIENVENIDO DE NUEVO</p><h1>Tu próxima estancia<br />empieza aquí.</h1><p>Accede a tu cuenta para gestionar tu perfil y la seguridad de tus sesiones.</p></div>
+    <div className="auth-intro"><p className="eyebrow">BIENVENIDO DE NUEVO</p><h1>Tu próxima estancia<br />empieza aquí.</h1><p>Accede para consultar tus reservas, gestionar pagos simulados y mantener tu cuenta segura.</p></div>
     <form className="auth-card" onSubmit={handleSubmit(async values => {
       setError('')
       try { await login(values); navigate('/account', { replace: true }) }

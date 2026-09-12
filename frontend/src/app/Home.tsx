@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { checkReadiness } from '../shared/api/health'
 
 type Status = 'checking' | 'ready' | 'unavailable'
@@ -30,8 +31,9 @@ export default function Home() {
             <p className="intro">Un espacio para conectar habitaciones, reservas y atención al huésped.</p>
             <div className="notice">
               <span className="notice-line" aria-hidden="true" />
-              <p>Ya puedes crear tu cuenta y gestionar tu seguridad. Las reservas estarán disponibles en una próxima etapa.</p>
+              <p>Explora habitaciones, consulta disponibilidad y reserva tu estancia. Gestiona pagos simulados y cancelaciones desde tu cuenta; el equipo del hotel cuenta con recepción y administración.</p>
             </div>
+            <p><Link className="nav-cta" to="/availability">Encuentra tu habitación</Link></p>
           </div>
           <div className="hotel-art" aria-hidden="true">
             <div className="sun" />

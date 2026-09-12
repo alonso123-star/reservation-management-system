@@ -1,169 +1,191 @@
 # Reservation Management System
 
-Sistema Full Stack de reservas de hotel, construido como un monolito modular.
+Sistema Full Stack de reservas para un hotel: catálogo y disponibilidad pública, reservas, pagos simulados, recepción y administración. Proyecto de portafolio con API REST, seguridad en backend, transacciones PostgreSQL y pruebas de concurrencia real.
 
-**Estado:** Fases 0–7 aprobadas y sincronizadas con GitHub en `1bd3bb2`. Fase 8 — Administración implementada localmente para revisión: usuarios, roles, activación/desactivación, último ADMIN protegido bajo concurrencia, panel y consulta de auditoría. Véase [docs/fase-8.md](docs/fase-8.md). Sin staging, commit ni push de esta entrega. Fase 9 no iniciada.
+Fases 0–8 aprobadas en `6d93b6a`. Fase 9 — Presentación se entrega localmente para revisión, con demo aislada, Playwright y documentación de evaluación. Resultados: [docs/fase-9.md](docs/fase-9.md). Los informes históricos conservan el estado de sus respectivas entregas.
 
-## Incluido en esta base
+## Evaluación rápida con demo
 
-- React + TypeScript con Vite y una pantalla que consulta la disponibilidad real del entorno.
-- Spring Boot, Java 21, Spring Data JPA y Actuator.
-- PostgreSQL 18 y una migración Flyway que prepara la extensión `btree_gist`.
-- OpenAPI/Swagger para el endpoint técnico de información.
-- Docker Compose con comprobaciones de salud, volumen persistente y proxy Nginx.
-- Pruebas JUnit con PostgreSQL mediante Testcontainers y pruebas de interfaz con Vitest.
-- CI de frontend, backend y arranque completo con Compose.
-- Git, Maven Wrapper y lockfile de npm.
-- Registro de clientes, login, JWT, refresh con rotación y revocación, logout y cambio de contraseña.
-- Roles CLIENTE, EMPLEADO y ADMIN; permisos por rol y propiedad de sesión en el backend.
-- Pantallas de registro, acceso, perfil y sesiones activas con React Router, TanStack Query, React Hook Form y Zod.
-- Spring Security, CSRF, control de origen, límites de intentos y auditoría de identidad.
-- Catálogo público de tipos y habitaciones, inventario ADMIN/EMPLEADO, filtros y paginación en PostgreSQL.
-- Formularios de catálogo, activación/desactivación, estados operativos, control optimista de edición y auditoría.
-- Búsqueda pública por estancia y huéspedes, tipo, precio y paginación, que excluye reservas bloqueantes y calcula el total estimado. Consultar no bloquea habitaciones; crear la reserva vuelve a comprobar elegibilidad dentro de una transacción.
-- Reservas propias de CLIENTE y para clientes por EMPLEADO/ADMIN, precio histórico, historial, detalle, cancelación y auditoría atómica.
-- Idempotency-Key con recibo persistente y restricción PostgreSQL GiST que impide reservas solapadas incluso entre transacciones independientes.
-- Pagos simulados deterministas, historial de intentos/reembolsos y cancelación pagada atómica; PostgreSQL impide dos APPROVED por reserva o dos refunds por pago.
-- Recepción para EMPLEADO/ADMIN: llegadas, huéspedes alojados, check-in, check-out y no-show con política horaria del hotel, versión, bloqueo y auditoría atómica.
-- Administración exclusiva de ADMIN: usuarios, roles, estado, sesiones revocadas al cambiar permisos, métricas por periodo y auditoría filtrada/paginada.
+Requisitos: Git, **Node.js 24.12.0**, Docker Desktop con motor Linux activo y Compose v2. Esta ruta no requiere Java, Maven ni PostgreSQL instalados. Reserva varios GB para imágenes y dependencias; con 4 GB asignados a Docker ejecuta las suites backend y aplicaciones por separado.
 
-## Versiones
+Desde PowerShell, Terminal o Bash:
 
-| Componente | Versión |
-|---|---|
-| Java | 21 LTS |
-| Spring Boot | 4.1.1 |
-| Maven Wrapper / Maven | 3.3.4 / 3.9.16 |
-| PostgreSQL | 18.6 |
-| springdoc | 3.1.1 |
-| Node.js usado en Docker y CI | 24.12.0 |
-| React | 19.2.8 |
-| TypeScript | 5.9.3 |
-| Vite | 8.2.2 |
-| Vitest | 5.0.0 |
-| ESLint | 10.10.0 |
-
-Las dependencias transitivas Java se gestionan mediante Spring Boot; las de frontend quedan registradas en `frontend/package-lock.json`. Las imágenes de Java reciben actualizaciones dentro de Java 21. Los tags de imágenes pueden actualizarse en origen; no constituyen una fijación por digest.
-
-## Arranque con Docker
-
-Requisitos: Docker Desktop con motor Linux activo, Docker Compose y Node.js para generar la configuración local. Esta ruta **no requiere Java ni Maven instalados en el equipo**.
-
-Desde la raíz del proyecto, en PowerShell:
-
-```powershell
-node scripts/setup-env.mjs
+```sh
+git clone https://github.com/alonso123-star/reservation-management-system.git
+cd reservation-management-system
+node scripts/demo.mjs demo up
+node scripts/demo.mjs demo seed
 ```
 
-El script crea `.env` o completa las claves que faltan, genera una contraseña PostgreSQL y una clave JWT aleatorias y conserva los valores ya configurados. No imprime secretos. `.env` está excluido de Git. También puedes copiar manualmente la plantilla y configurar ambos valores: la clave JWT debe ser Base64 de al menos 32 bytes aleatorios.
+Los comandos de esta entrega estarán disponibles en GitHub después de aprobar y publicar Fase 9; mientras tanto se ejecutan sobre este working tree. La primera construcción puede tardar varios minutos. Abre [la demo](http://localhost:3001), usando **localhost**: Origin y cookies se verifican. Todos los puertos se publican solo en loopback.
 
-```powershell
+| Rol | Correo sintético | Contraseña pública de demo |
+|---|---|---|
+| CLIENTE | `client@example.test` | `Demo-Only-Reservation-2026!` |
+| EMPLEADO | `employee@example.test` | `Demo-Only-Reservation-2026!` |
+| ADMIN | `admin@example.test` | `Demo-Only-Reservation-2026!` |
+
+Estas cuentas existen únicamente después del seed en `rms-demo` o en fixtures `rms-e2e`. No son credenciales de producción. PostgreSQL y JWT usan secretos aleatorios guardados en `.env.demo`, ignorado por Git, sin imprimirse. El backend no carga cuentas demo automáticamente.
+
+El seed crea Standard, Deluxe y Suite; ocho habitaciones en tres pisos, capacidades 2/3/4 y precios PEN 120/220/350. Seis están operativas, una en mantenimiento y otra fuera de servicio. Incluye cinco reservas: confirmada futura, huésped ingresado, estancia finalizada, cancelada con refund y no-show; seis intentos de pago, tres aprobados y un reembolso. Las operaciones generan auditoría mediante la API. Solo el primer ADMIN se promueve mediante SQL, antes de login y exclusivamente en la base aislada.
+
+Recorrido sugerido:
+
+1. Explora **Catálogo** y busca una estancia de dos noches para dos huéspedes dentro de un mes.
+2. Como CLIENTE, revisa **Mis reservas**, pagos y refund. Crea otra reserva y prueba el simulador.
+3. Como EMPLEADO, abre **Recepción** y el huésped ingresado. Para otro check-in, reserva desde hoy y completa el pago.
+4. Como ADMIN, consulta usuarios, panel y auditoría. El panel requiere un periodo que incluya el día del seed; la fecha final queda excluida.
+
+Las fechas siguen `America/Lima` al sembrar. No se altera el reloj del backend ni se actualizan fixtures al reiniciar. El seed rechaza una base con usuarios, conservando los datos; no duplica ni borra demostraciones existentes. Para renovar fechas o recuperar un seed interrumpido, reinicia explícitamente solo la demo:
+
+```sh
+node scripts/demo.mjs demo reset
+node scripts/demo.mjs demo up
+node scripts/demo.mjs demo seed
+```
+
+`reset` elimina los volúmenes del proyecto elegido. `stop` y `down` conservan datos.
+
+## Funcionalidades y roles
+
+| Capacidad | Público | CLIENTE | EMPLEADO | ADMIN |
+|---|---|---|---|---|
+| Catálogo y disponibilidad | Sí | Sí | Sí | Sí |
+| Registro CLIENTE / login | Sí | Sí | Sí | Sí |
+| Perfil, contraseña y sesiones propias | — | Sí | Sí | Sí |
+| Reservas, historial, detalle y pagos | — | Propios | Hotel / para clientes | Hotel / para clientes |
+| Cancelación | — | Propia antes del día de llegada | Antes de check-in | Antes de check-in |
+| Inventario / estado operativo | — | — | Consulta / estado | Completo |
+| Tipos y edición completa de habitaciones | — | — | — | Sí |
+| Check-in, check-out y no-show | — | — | Sí | Sí |
+| Usuarios, roles, estado, panel y auditoría | — | — | — | Sí |
+
+Permisos y propiedad se verifican en backend. Ocultar botones no sustituye autorización. Búsqueda, filtros y paginación se resuelven en PostgreSQL.
+
+## Stack, arquitectura y modelo de datos
+
+| Componente | Tecnología |
+|---|---|
+| Backend | Java 21, Spring Boot 4.1.1, Spring Security, JPA, JDBC, Bean Validation |
+| Datos | PostgreSQL 18.6, Flyway, NUMERIC, btree_gist |
+| API | REST JSON, OpenAPI / springdoc 3.1.1, Problem Details |
+| Frontend | React 19.2.8, TypeScript 5.9.3, Vite 8.2.2 |
+| Formularios y estado | React Hook Form, Zod, TanStack Query, React Router |
+| Pruebas | JUnit, Testcontainers, Vitest 5.0.0, Testing Library, Playwright 1.63.0 / Chromium |
+| Entrega | Maven Wrapper 3.3.4 / Maven 3.9.16, npm lockfile, Docker Compose, Nginx, GitHub Actions |
+
+Monolito modular. Los módulos agrupan API, aplicación, dominio e infraestructura según necesidad; sin microservicios ni colas externas.
+
+```mermaid
+flowchart LR
+  Browser[React + TypeScript] --> Nginx[Nginx: SPA y proxy]
+  Nginx --> Security[Spring Security: Origin, CSRF, JWT y sesión]
+  Security --> API[REST y DTOs]
+  API --> Modules[Identidad · Catálogo · Reservas · Pagos · Recepción · Administración]
+  Modules --> PG[(PostgreSQL)]
+  Flyway[Flyway V1–V6] --> PG
+  Playwright[Playwright: navegador real] --> Browser
+  JUnit[JUnit / Testcontainers] --> API
+```
+
+```text
+backend/
+  src/main/java/com/portfolio/reservation/
+    identity/ users/ rooms/ reservations/ payments/ reception/
+    audit/ reporting/ shared/
+  src/main/resources/db/migration/   # V1–V6 históricas
+  src/test/java/                    # JUnit + PostgreSQL real
+frontend/
+  src/app/                         # Router, portada y navegación
+  src/features/                    # UI por funcionalidad
+  e2e/                             # Playwright y fixtures aislados
+  playwright.config.ts
+infrastructure/nginx/              # Proxy y fallback SPA
+scripts/                           # Configuración, demo y smoke HTTP
+docs/                              # Plan, ADR, contratos e informes
+.github/workflows/ci.yml
+compose.yaml
+```
+
+Modelo simplificado; existen además referencias de actor, autor y cancelador a `users`:
+
+```mermaid
+erDiagram
+  roles ||--o{ users : asigna
+  users ||--o{ refresh_sessions : inicia
+  refresh_sessions ||--o{ refresh_tokens : rota
+  users ||--o{ reservations : cliente
+  room_types ||--o{ rooms : clasifica
+  rooms ||--o{ reservations : aloja
+  reservations ||--o{ payments : intentos
+  payments ||--o| refunds : reembolso
+  users ||--o{ idempotency_requests : solicita
+  reservations ||--o{ idempotency_requests : resultado
+  users |o--o{ audit_events : actor
+```
+
+UUID generados por servidor; versiones para edición optimista; estancia DATE e instantes TIMESTAMPTZ. Reservas conservan tarifa, total y moneda históricos. Dinero BigDecimal / NUMERIC. Auditoría incluye metadatos y JSONB limitado a cambios de rol/estado; `auth_rate_limits` mantiene límites compartidos en PostgreSQL.
+
+## Entorno propio sin demo
+
+Base vacía, sin usuarios privilegiados predeterminados:
+
+```sh
+node scripts/setup-env.mjs
 docker compose config --quiet
 docker compose up --build --wait --wait-timeout 240
 ```
 
-La primera construcción descarga imágenes y dependencias; puede tardar varios minutos.
+Se genera `.env` con secretos aleatorios y se conservan valores existentes. No lo imprimas ni lo subas. Registra una cuenta en la UI. Para aprovisionar expresamente el primer ADMIN local: `node scripts/bootstrap-admin.mjs <correo>`. Requiere cero ADMIN activos, revoca sesiones y audita; inicia sesión nuevamente. Los siguientes roles/usuarios se gestionan en la UI.
 
-| Servicio | Dirección predeterminada |
+| Entorno | Proyecto / base | Frontend | Backend | PostgreSQL |
+|---|---|---|---|---|
+| Local propio | reservation-management-system / reservation_management | 3000 | 8080 | 5432 |
+| Demo | rms-demo / rms_demo | 3001 | 8081 | 5433 |
+| E2E desechable | rms-e2e / rms_e2e | 3002 | 8082 | 5434 |
+
+Configuración, redes y volúmenes separados. Los scripts aislados fijan proyecto, base, puertos y zona; rechazan valores incompatibles. No ejecutes dos suites Playwright simultáneamente sobre `rms-e2e`.
+
+Para usar demo y entorno propio simultáneamente, abre perfiles de navegador separados (o una ventana privada para demo). Las cookies de localhost se comparten entre puertos: alternar entornos en un mismo perfil puede cerrar sesiones. Playwright utiliza contextos independientes y no comparte las cookies de tu navegador habitual.
+
+### Variables
+
+| Variable | Uso |
 |---|---|
-| Aplicación | http://localhost:3000 |
-| Búsqueda de estancia | http://localhost:3000/availability |
-| Historial autenticado | http://localhost:3000/reservations |
-| Recepción del personal | http://localhost:3000/staff/reception |
-| Usuarios / panel / auditoría ADMIN | http://localhost:3000/admin/users · /admin/dashboard · /admin/audit-events |
-| API técnica | http://localhost:3000/api/v1/system/info |
-| Disponibilidad de backend y PostgreSQL | http://localhost:3000/api/v1/system/health/readiness |
-| Swagger UI | http://localhost:3000/swagger-ui/index.html |
-| OpenAPI | http://localhost:3000/v3/api-docs |
-| Backend directo | http://localhost:8080 |
-| PostgreSQL local | localhost:5432 |
+| POSTGRES_DB / POSTGRES_USER | Base y usuario locales; demo/E2E usan valores fijos aislados |
+| POSTGRES_PASSWORD | Aleatoria; cambiar `.env` no cambia una base ya inicializada |
+| POSTGRES_PORT / BACKEND_PORT / FRONTEND_PORT | Puertos publicados en loopback |
+| JWT_SECRET_BASE64 | Clave aleatoria Base64 de al menos 32 bytes; scripts generan 32 |
+| HOTEL_TIME_ZONE | America/Lima por defecto |
+| HOTEL_ARRIVAL_DEADLINE | 22:00 del día de llegada por defecto |
+| AUTH_COOKIE_SECURE | Backend true por defecto; Compose false solo para HTTP local |
+| AUTH_ALLOWED_ORIGINS | Compose calcula los orígenes locales permitidos |
+| API_DOCS_ENABLED | Backend true por defecto; admite false para desactivar documentación |
 
-Los puertos publicados se limitan a `127.0.0.1`. Este Compose corresponde a desarrollo local; no es una publicación de producción.
+Las últimas opciones se pasan al proceso backend; no todas se interpolan desde `.env` en Compose. Configuración completa: `compose.yaml` y `backend/src/main/resources/application.yml`. Los archivos generados usan `CLAVE=valor`.
 
-```powershell
-docker compose ps
-docker compose logs --tail 100 backend
-docker compose down
-```
+### URLs
 
-`down` conserva el volumen de PostgreSQL. No uses `down --volumes` salvo que quieras borrar explícitamente los datos locales. Cambiar la contraseña en `.env` después de inicializar el volumen no cambia automáticamente la contraseña existente en PostgreSQL.
+Sustituye 3001 por 3000 para entorno propio o por 3002 para E2E.
 
-## Comprobaciones
+| Recurso | URL demo |
+|---|---|
+| Portada | http://localhost:3001 |
+| Catálogo / búsqueda | http://localhost:3001/catalog/types · /catalog/rooms · /availability |
+| Reservas / recepción | http://localhost:3001/reservations · /staff/reception |
+| Administración | http://localhost:3001/admin/users · /admin/dashboard · /admin/audit-events |
+| Readiness, incluye PostgreSQL | http://localhost:3001/api/v1/system/health/readiness |
+| Información de versión | http://localhost:3001/api/v1/system/info |
+| Swagger UI | http://localhost:3001/swagger-ui/index.html |
+| OpenAPI JSON | http://localhost:3001/v3/api-docs |
 
-Frontend, con Node.js 24.12.0:
+Readiness debe responder `UP`; backend sin PostgreSQL no está listo. Proxy y API comparten origen.
 
-```powershell
-cd frontend
-npm.cmd ci
-npm.cmd run lint
-npm.cmd test
-npm.cmd run build
-cd ..
-```
+### Desarrollo local
 
-Backend con Java 21 dentro de Docker, sin depender del Java local:
+Con backend y PostgreSQL en Compose, ejecuta `npm ci` y `npm run dev` en `frontend/`. Abre http://localhost:5173; Vite reenvía la API al backend 8080. En PowerShell usa `npm.cmd` si la política bloquea `npm.ps1`.
 
-```powershell
-docker compose --profile test run --rm backend-tests
-```
-
-Este servicio usa Testcontainers para crear una base de datos efímera independiente de la base de desarrollo. Necesita acceso al motor Docker mediante su socket. No utiliza ni limpia el volumen `postgres_data`.
-
-Backend si ya tienes un JDK 21 y Docker activo:
-
-```powershell
-cd backend
-.\mvnw.cmd -B -ntp verify
-cd ..
-```
-
-`verify` ejecuta las pruebas de integración con Maven Failsafe; `test` por sí solo no ejecuta las clases `*IT`. Fase 8 añade 25 pruebas backend a las 175 existentes y 19 frontend a las 109 anteriores. En Windows, si los procesos de Vitest agotan el tiempo de inicio, utiliza `npm.cmd test -- --pool=forks --maxWorkers=1`; ejecuta la misma suite con un worker. Los resultados y cualquier ejecución por grupos se registran en `docs/fase-8.md`.
-
-Prueba del conjunto ya arrancado, desde la raíz y con Node.js:
-
-```powershell
-node scripts/smoke.mjs
-```
-
-Si cambias `FRONTEND_PORT`, indica la URL correspondiente en `SMOKE_BASE_URL`.
-
-Para comprobar también reserva, pago rechazado/aprobado, replays, prevención de doble pago, cancelación con reembolso y disponibilidad en el Compose local de puerto 3000:
-
-```powershell
-node scripts/reservations-smoke.mjs --payments
-```
-
-Este segundo script requiere Docker y `.env` local. Crea datos sintéticos identificados por UUID, una cuenta temporal, reserva e intentos de pago; elimina únicamente sus propios datos al terminar. Sin `--payments` conserva el recorrido de reserva sin pago. No imprime credenciales ni tokens. No está destinado a producción.
-
-Para comprobar recepción, permisos, pago completo, salida anticipada y no-show con disponibilidad:
-
-```powershell
-node scripts/reception-smoke.mjs
-```
-
-También requiere Compose local en puerto 3000 y `.env`. Crea catálogo y cuentas sintéticas, habilita EMPLEADO únicamente en su propia cuenta temporal y elimina exclusivamente sus fixtures. Las fechas siguen el día del hotel; el recorrido determinista con avance controlado del reloj se ejecuta en ReceptionIT.
-
-Para comprobar administración de usuarios, revocación, último ADMIN, métricas exactas y auditoría:
-
-```powershell
-node scripts/administration-smoke.mjs
-```
-
-Requiere Compose local y cero ADMIN activos: comprueba el primer aprovisionamiento con una cuenta sintética y limpia exclusivamente sus fixtures. Si ya existe un ADMIN, se detiene antes de crear datos; las pruebas aisladas de AdministrationIT no tienen esa limitación.
-
-## Desarrollo con recarga del frontend
-
-Con el backend y PostgreSQL funcionando en Compose:
-
-```powershell
-cd frontend
-npm.cmd ci
-npm.cmd run dev
-```
-
-Abre http://localhost:5173. Vite reenvía las peticiones al backend en http://localhost:8080. Si cambias su puerto, adapta el destino en `frontend/vite.config.ts`.
-
-Para desarrollar Java fuera de Docker necesitarás JDK 21. Detén primero el backend de Compose para liberar el puerto:
+Para Java necesitas JDK 21. Desde PowerShell en la raíz:
 
 ```powershell
 docker compose stop backend frontend
@@ -174,58 +196,125 @@ $env:SPRING_DATASOURCE_USERNAME = $databaseConfig.POSTGRES_USER
 $env:SPRING_DATASOURCE_PASSWORD = $databaseConfig.POSTGRES_PASSWORD
 $env:JWT_SECRET_BASE64 = $databaseConfig.JWT_SECRET_BASE64
 $env:AUTH_COOKIE_SECURE = "false"
+$env:HOTEL_TIME_ZONE = $databaseConfig.HOTEL_TIME_ZONE
+$env:HOTEL_ARRIVAL_DEADLINE = $databaseConfig.HOTEL_ARRIVAL_DEADLINE
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Este ejemplo requiere que `.env` mantenga el formato simple `CLAVE=valor` de la plantilla.
+### Detener y limpiar
 
-## Estructura actual
+```sh
+node scripts/demo.mjs demo status
+node scripts/demo.mjs demo stop
+node scripts/demo.mjs demo down
+docker compose down
+```
 
-- `backend/`: módulos identity, users, rooms, reservations, payments, reception, audit, reporting y shared, migraciones y pruebas de integración.
-- `frontend/`: aplicación React, catálogo, disponibilidad, reservas, pagos simulados, recepción, administración, inventario del personal, identidad, cliente HTTP y pruebas.
-- `infrastructure/nginx/`: archivos estáticos y proxy al backend.
-- `scripts/smoke.mjs`: comprobación HTTP del conjunto.
-- `.github/workflows/ci.yml`: verificación automática al hacer push o abrir un pull request.
-- `docs/plan-inicial.md`: planificación aprobada.
-- `docs/adr/0001-base-ejecutable.md`: decisiones de la Fase 1.
-- `docs/fase-1.md`: alcance y registro de verificación.
-- `docs/auth-api.md`: contrato de identidad, cookies, CSRF y errores.
-- `docs/adr/0002-identidad-autenticacion.md`: decisiones de seguridad y concurrencia.
-- `docs/fase-2.md`: alcance y comprobaciones de identidad.
-- `docs/catalog-api.md`: rutas, filtros, permisos y concurrencia del catálogo.
-- `docs/adr/0003-catalogo.md`: decisiones de catálogo y límites del alcance.
-- `docs/fase-3.md`: informe y resultados de verificación de catálogo.
-- `docs/fase-4.md`: informe histórico de la entrega de disponibilidad.
-- `docs/fase-5.md`: modelo, contrato, concurrencia, idempotencia y verificaciones de reservas.
-- `docs/fase-6.md`: informe histórico del simulador, pagos/refunds, locking, contratos y verificaciones.
-- `docs/fase-7.md`: informe histórico de recepción, política temporal, transiciones y concurrencia.
-- `docs/fase-8.md`: usuarios administrativos, auditoría, fórmulas del panel, contratos y verificaciones de esta entrega.
+Conservan datos. `demo up` vuelve a arrancar; no repitas el seed. `node scripts/demo.mjs demo reset` elimina solo demo; `node scripts/demo.mjs e2e reset` elimina solo E2E. **`docker compose down --volumes` borra tu base local propia**: úsalo solo si deseas descartar esos datos. Reconstruir no requiere borrar volúmenes.
 
-Los módulos de negocio se crearán cuando comience su fase, evitando carpetas vacías y código anticipado.
+## Pruebas y CI
 
-## Configuración y límites
+Backend completo, desde raíz y con `.env` creado mediante `setup-env.mjs`:
 
-Flyway administra el esquema y Hibernate utiliza `ddl-auto=validate`. V1 instala `btree_gist`; V2 añade identidad y auditoría; V3 añade catálogo; V4 añade reservas e idempotencia. V5 incorpora payments/refunds y extiende los recibos para pagos. Recepción reutiliza V4 sin migración. Administración añade V6 exclusivamente para el JSONB de cambios permitidos de auditoría que faltaba en V2. V1–V5 permanecen intactas. Nunca se usa `ddl-auto=update` ni se reescriben migraciones históricas.
+```sh
+docker compose --profile test run --rm backend-tests
+```
 
-La comprobación de readiness incluye PostgreSQL. Un backend vivo sin acceso a su base no se considera listo. El endpoint no devuelve detalles internos.
+Ejecuta `mvn verify`: compila, empaqueta el JAR y prueba ocho clases (200 casos). Testcontainers requiere socket Docker y crea PostgreSQL efímero, sin usar la base de desarrollo. Incluye concurrencia, rollback, JWT, sesiones, IDOR, GiST, idempotencia, pagos, recepción, último ADMIN, métricas y migraciones. Con JDK 21 local, usa `./mvnw -B -ntp verify` en `backend/` (`.\mvnw.cmd` en Windows). `mvn test` no ejecuta `*IT`.
 
-Swagger está habilitado para desarrollo. `API_DOCS_ENABLED=false` permite desactivarlo al configurar el backend. Solo se expone el endpoint Actuator de salud.
+Con 4 GB asignados a Docker, detén aplicaciones demo/E2E/local mientras corre esta suite; conserva volúmenes y vuelve a levantarlas después. No reduzcas los casos para obtener un resultado verde.
 
-Para probar la aplicación, crea una cuenta desde **Crear cuenta** y después inicia sesión. No hay usuarios privilegiados predeterminados. El registro siempre asigna CLIENTE. Para aprovisionar expresamente el primer ADMIN local, registra una cuenta y ejecuta `node scripts/bootstrap-admin.mjs <correo>` con acceso al Compose local. Solo funciona si no existe un ADMIN activo, conserva la contraseña, revoca sesiones y audita; después debes iniciar sesión nuevamente. Los siguientes usuarios/roles se administran desde la interfaz ADMIN.
+Frontend, dentro de `frontend/`:
 
-El JWT de acceso dura 15 minutos y se conserva solo en memoria. El refresh dura 7 días absolutos, rota y viaja en cookie HttpOnly/SameSite Strict. Reutilizar un refresh consumido revoca su familia. Logout invalida la sesión y cambiar contraseña invalida todas. La API comprueba usuario, rol, versión y sesión en PostgreSQL en cada petición autenticada.
+```sh
+npm ci
+npm test -- --pool=forks --maxWorkers=1
+npm run build
+npm run lint
+npm run typecheck:e2e
+```
 
-Origin es obligatorio para todas las mutaciones, incluso desde herramientas HTTP. CSRF protege operaciones con cookies; Spring Resource Server exceptúa peticiones Bearer explícitas. React también envía CSRF con esas peticiones. Consulta los contratos de identidad y catálogo para la secuencia. Compose utiliza cookies sin Secure exclusivamente por su HTTP local; para HTTPS se debe usar Secure=true y configurar los orígenes autorizados. El backend por defecto exige Secure.
+128 pruebas Vitest, 10 archivos, separadas de Playwright. Un worker evita saturar equipos de desarrollo. El build verifica TypeScript y genera el bundle Vite.
 
-Las credenciales de PostgreSQL son locales; su usuario administra la base para permitir las migraciones. Para despliegue quedan por definir permisos separados de migración, proxies confiables para límites por IP y retención/purga de sesiones y auditoría. El ADR detalla estos límites.
+### Playwright real
 
-Catálogo público: `/catalog/types` y `/catalog/rooms`. Inventario: `/staff/catalog/types` y `/staff/catalog/rooms`. `ACTIVE` es estado operativo; no indica disponibilidad para fechas. La tarifa base usa PEN por defecto; cada reserva guarda tarifa, moneda e importe históricos. La cancelación usa `hotel.time-zone`, por defecto `America/Lima`.
+Desde la raíz, con Docker activo:
 
-Una reserva se confirma inicialmente sin pago. Desde su detalle puede iniciarse el simulador: primer intento nuevo DECLINED y siguiente APPROVED; reintentar la misma clave conserva el resultado. No se solicitan datos de tarjeta ni se mueve dinero real. El backend usa el total y moneda históricos, y cancelar una reserva pagada genera un refund completo automáticamente.
+```sh
+node scripts/demo.mjs e2e up
+cd frontend
+npm ci
+npx playwright install chromium
+npm run typecheck:e2e
+npm run test:e2e
+```
 
-Recepción requiere EMPLEADO/ADMIN. Check-in exige pago completo vigente y fecha local dentro de la estancia. No-show se permite estrictamente después de `HOTEL_ARRIVAL_DEADLINE` (22:00 del día de llegada por defecto), en `HOTEL_TIME_ZONE` (America/Lima); libera disponibilidad sin reembolso automático. Check-out conserva fechas, precio y bloqueo del rango original incluso si es anticipado. No hay automatismos de no-show.
+En Linux: `npx playwright install --with-deps chromium` si faltan bibliotecas. `npm run test:e2e:ui` abre el explorador interactivo. El entorno E2E debe permanecer arrancado. Al terminar, desde la raíz usa `node scripts/demo.mjs e2e down` o `reset` para eliminar sus datos.
 
-Administración requiere ADMIN y protege el último administrador activo mediante bloqueo PostgreSQL. Cambiar rol o estado revoca sesiones inmediatamente. El panel usa [from,to) en la zona del hotel: ocupación reservada sobre inventario actualmente operativo, llegadas/salidas programadas y pagos APPROVED menos refunds por la fecha de cada movimiento. Las fórmulas y sus límites están en `docs/fase-8.md`.
+Ocho casos en Chromium, contra Nginx + Spring + PostgreSQL, sin mocks de red ni JWT fabricados:
 
-La CI está configurada en GitHub. Las comprobaciones de Fase 8 son locales hasta autorizar commit y push; no se afirma una ejecución remota de estos cambios.
+- Registro → login → disponibilidad → reserva → pago rechazado/aprobado → EMPLEADO check-in → check-out.
+- Cancelación pagada, historial/detalle, un refund y disponibilidad restaurada.
+- Rutas protegidas sin sesión y catálogo público.
+- CLIENTE y EMPLEADO frente a administración y recepción (dos casos).
+- Recarga con refresh real, revocación desde la UI y logout.
+- Otro cliente intenta consultar reserva ajena: 404, sin detalle ni pagos.
+- ADMIN crea/consulta/cambia rol y estado, invalida sesión, protege último ADMIN, consulta métricas exactas y auditoría filtrada.
+
+Las acciones se realizan en la UI. Cada caso reinicia solo `rms_e2e` y prepara datos sintéticos mediante API, conservando migraciones. Un contexto limpio por caso, seriales, sin depender de resultados anteriores ni reintentos automáticos. Fechas relativas a la zona del hotel; no hay reloj falso en producción. Límites horarios y carreras se cubren con JUnit, reloj controlado y conexiones independientes.
+
+Reportes HTML y capturas de fallos: `frontend/playwright-report/` y `frontend/test-results/`, ignorados por Git y Docker. Traces/vídeos desactivados para no conservar tráfico de autenticación; no se guardan cookies ni storageState. No publiques reportes.
+
+### Smoke, Docker y Flyway
+
+`node scripts/smoke.mjs` verifica frontend compilado, assets, proxy, readiness, catálogo, disponibilidad, validación, rutas protegidas, OpenAPI y Swagger en 3000. Para demo configura `SMOKE_BASE_URL=http://localhost:3001` (PowerShell: `$env:SMOKE_BASE_URL = 'http://localhost:3001'`).
+
+Los scripts históricos `reservations-smoke.mjs --payments`, `reception-smoke.mjs` y `administration-smoke.mjs` ejecutan recorridos adicionales solo en Compose local de 3000 con `.env`. Crean y limpian UUID sintéticos propios; el administrativo requiere cero ADMIN activos. No están destinados a producción. Demo/Playwright ya recorren esas funciones de forma aislada.
+
+Flyway aplica V1 extensión, V2 identidad/auditoría, V3 catálogo, V4 reservas/idempotencia, V5 pagos/refunds y V6 JSONB de auditoría. Hibernate solo valida. Fase 9 no añade migraciones. La suite verifica desde cero y upgrade V5 → V6 con evento histórico conservado; mantiene pruebas de upgrades anteriores. No se reescriben checksums históricos.
+
+CI ejecuta frontend, backend/Testcontainers y Compose con Playwright. La ejecución remota de cambios locales ocurrirá solo después de autorizar su publicación.
+
+## Reglas, seguridad y concurrencia
+
+### Identidad y permisos
+
+Registro siempre CLIENTE; BCrypt, DTOs estrictos y rechazo de campos desconocidos. JWT de acceso de 15 minutos solo en memoria; refresh de 7 días absolutos en cookie HttpOnly/SameSite Strict con rotación y revocación de familia al reutilizar uno consumido. Logout revoca sesión. Contraseña, rol o estado invalidan sesiones inmediatamente mediante securityVersion. Backend comprueba usuario y sesión en cada petición autenticada.
+
+Origin obligatorio para mutaciones. CSRF protege operaciones con cookies; Spring exceptúa Bearer explícito y React también envía CSRF. HTTP local usa cookies sin Secure; HTTPS requiere Secure y orígenes explícitos. No se exponen hashes, JWT, refresh ni secretos en DTOs administrativos o auditoría. Rate limits compartidos en PostgreSQL.
+
+### Reservas y anti-overbooking
+
+Una habitación por reserva y rango `[checkIn,checkOut)`: estancias adyacentes compatibles. Consultar disponibilidad no retiene habitaciones; crear vuelve a validar elegibilidad y precio en transacción. UUID/código y precio son del servidor; autor desde JWT y también cliente para reserva propia. Solo personal autorizado selecciona otro cliente.
+
+La constraint PostgreSQL `EXCLUDE USING gist (room_id WITH =, daterange(check_in,check_out,'[)') WITH &&)` impide solapamiento entre transacciones para **CONFIRMED, CHECKED_IN y CHECKED_OUT**. CANCELLED y NO_SHOW liberan fechas. No hay holds ni expiración automática de reservas impagadas.
+
+Idempotency-Key UUID obligatorio en creación y pagos, acotado por actor/operación. Misma clave/cuerpo devuelve recibo; cuerpo distinto se rechaza. Recibos vencidos permanecen como tombstones, sin reciclar silenciosamente claves. La UI conserva la clave de una respuesta incierta y ofrece reintentar o consultar historial.
+
+### Pagos, refunds y recepción
+
+Simulador sin tarjetas ni dinero real: primer intento nuevo DECLINED, segundo APPROVED; replay mantiene resultado. Servidor determina importe, moneda, actor y referencia. Índice único parcial permite un APPROVED por reserva y restricción única un refund por pago. Pago y cancelación bloquean la misma reserva; cancelar pagada genera refund completo y auditoría en la misma transacción.
+
+Check-in: CONFIRMED → CHECKED_IN, pago completo vigente y fecha local dentro de estancia. Check-out: CHECKED_IN → CHECKED_OUT; salida anticipada conserva fechas, precio y bloqueo original, sin refund. No-show: CONFIRMED → NO_SHOW estrictamente después de HOTEL_ARRIVAL_DEADLINE del día de llegada; libera fechas sin refund automático. No se ejecuta automáticamente. Recepción y cancelación comparten bloqueo y versión, evitando estados/auditorías duplicados.
+
+### Administración, auditoría y dashboard
+
+Solo ADMIN administra usuarios. Versión obsoleta produce 409. Mutación y auditoría atómicas; desactivar conserva historial. Un bloqueo PostgreSQL compartido protege al último ADMIN incluso con operaciones concurrentes mixtas. Auditoría filtrada/paginada por actor, acción, recurso, ID, requestId y periodo; solo campos permitidos, sin cuerpos de autenticación ni contraseñas.
+
+Dashboard usa `[from,to)` de 1–366 días en zona del hotel y una consulta/snapshot PostgreSQL:
+
+- **Reservas creadas:** created_at en periodo, todos los estados.
+- **Llegadas/salidas:** fechas reservadas en periodo, estados bloqueantes.
+- **Ocupación:** noches de intersección de reservas bloqueantes sobre inventario actualmente activo/operativo, dividido por habitaciones elegibles × días. Porcentaje a dos decimales; inventario cero produce null.
+- **Ingreso neto simulado:** APPROVED por fecha de pago menos refunds por su propia fecha. DECLINED excluido; neto puede ser negativo. Monedas históricas distintas producen 409.
+
+Mide ocupación reservada, no presencia física ni inventario histórico. Fórmulas completas: [Fase 8](docs/fase-8.md).
+
+## Límites reales y documentación
+
+Un hotel, una habitación por reserva, PEN, sin cambio de fechas, correo, recuperación de contraseña, pagos reales, facturación fiscal ni multi-hotel. Sin galería de imágenes ni cargas. Perfil: consulta y cambio de contraseña; administración modifica rol/estado, no nombre/correo. Demo requiere reset explícito para renovar fechas.
+
+Compose es para evaluación local. Producción requeriría HTTPS, gestión externa de secretos, permisos separados de migración, backups, retención, monitoreo, recuperación y proxies confiables. Imágenes con tags versionados, no digests inmutables. Chromium es el navegador E2E verificado; Firefox/WebKit y auditoría formal de accesibilidad no se incluyen. No se afirma CI remota para cambios locales.
+
+Documentación: [plan](docs/plan-inicial.md), [identidad](docs/auth-api.md), [catálogo](docs/catalog-api.md), [ADR](docs/adr/), informes de [reservas](docs/fase-5.md), [pagos](docs/fase-6.md), [recepción](docs/fase-7.md), [administración](docs/fase-8.md) y [presentación](docs/fase-9.md).
